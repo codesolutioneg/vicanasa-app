@@ -1,0 +1,1045 @@
+---
+description: 
+alwaysApply: true
+---
+
+# ============================================================
+# ENGINEERING RULES — Mobile & Software Development
+# Author: Personal Cursor Rules
+# Version: 2.0
+# Last Updated: 2025
+# ============================================================
+# HOW THIS FILE WORKS:
+# Place this file at the ROOT of your project as `.cursorrules`
+# Cursor reads it automatically and applies these rules to ALL
+# AI interactions in that project. No setup needed beyond that.You are working on a Flutter mobile application (dar_alabaya_user_mobile).
+The backend has been updated to a catalog-based shipping system where addresses are linked to:
+
+governorateId
+areaId
+shippingPrice (snapshot stored in backend)
+shippingCalculatedAt
+governorateName, areaName
+
+❗ IMPORTANT: The system is NOT using text-based governorate/city anymore. Everything is ID-based.
+
+🌐 API ENDPOINTS (MUST USE THESE ONLY)
+1. Shipping Catalog
+Get Governorates
+GET /api/v1/shipping/governorates
+
+Response:
+
+[
+  { "id": 1924, "name": "القاهرة" }
+]
+Get Areas inside governorate
+GET /api/v1/shipping/governorates/{governorateId}/areas
+
+Response:
+
+[
+  {
+    "id": 45772,
+    "name": "مدينة نصر",
+    "shippingPrice": 65,
+    "isOther": false
+  },
+  {
+    "id": 90001,
+    "name": "أخرى",
+    "shippingPrice": 90,
+    "isOther": true
+  }
+]
+Calculate Shipping (optional preview only)
+POST /api/v1/shipping/calculate
+
+Body:
+
+{
+  "governorateId": 1924,
+  "areaId": 45772
+}
+
+Response:
+
+{
+  "shippingCost": 65,
+  "currency": "EGP"
+}
+Quote (optional UI display)
+GET /api/v1/shipping/quote?governorateId=1924&areaId=45772
+2. Address APIs
+Create Address
+POST /api/v1/users/me/addresses
+
+Body:
+
+{
+  "governorateId": 1924,
+  "areaId": 45772,
+  "label": "Home",
+  "street": "15 Nile St",
+  "building": "8",
+  "floor": "3",
+  "phone": "01234567890",
+  "isDefault": true
+}
+Update Address
+PUT /api/v1/users/me/addresses/{addressId}
+
+Same body as create (FULL REPLACE — NOT PATCH).
+
+Get Addresses
+GET /api/v1/users/me/addresses
+3. Orders
+Place Order
+POST /api/v1/orders
+
+Body:
+
+{
+  "paymentMethod": "COD",
+  "addressId": "clwk..."
+}
+
+❗ DO NOT send shipping price from client
+Backend uses:
+
+address.shippingPrice snapshot only
+📱 FEATURE REQUIREMENTS (FLUTTER IMPLEMENTATION)
+1. Add Address Screen (Critical Change)
+
+Replace current text-based governorate/city fields with:
+
+UI Flow:
+Step 1 — Load Governorates
+Call:
+GET /shipping/governorates
+Show:
+Dropdown (searchable)
+Step 2 — On Governorate Select
+Store selectedGovernorateId
+Call:
+GET /shipping/governorates/{id}/areas
+Step 3 — Area Dropdown
+Show areas list
+Include:
+normal areas
+"أخرى" option (must be last or highlighted)
+Step 4 — Show Shipping Price Live (UI)
+
+When user selects area:
+
+Option A (preferred):
+take shippingPrice from area response
+Option B:
+call /shipping/calculate
+
+Display:
+
+Shipping: 65 EGP
+2. Address Model Update (Flutter)
+
+Replace old fields:
+
+REMOVE:
+String governorate;
+String city;
+ADD:
+int governorateId;
+int areaId;
+
+String? governorateName;
+String? areaName;
+
+double? shippingPrice;
+DateTime? shippingCalculatedAt;
+3. Checkout Screen Fix
+REMOVE:
+static const double _shippingCost = 40;
+REPLACE WITH:
+final selectedAddress.shippingPrice
+Total calculation:
+total = subtotal + (address.shippingPrice ?? 0);
+4. Checkout Behavior
+
+When user selects address:
+
+Read from backend:
+shippingPrice
+governorateName
+areaName
+
+❗ DO NOT call shipping API again unless user changes address
+
+5. Error Handling (MANDATORY)
+Handle these cases:
+1. No internet
+Show retry button
+2. Governorates fail
+Empty state + retry
+3. Areas fail
+Reset area dropdown
+
+Show message:
+
+Failed to load areas
+4. Shipping calculation fail
+
+fallback:
+
+Hide price temporarily
+5. Address validation error (backend)
+
+Possible error codes:
+
+ADDRESS_SHIPPING_NOT_READY
+SHIPPING_AREA_MISMATCH
+INVALID_SHIPPING_AREA
+
+UI behavior:
+
+show snackbar
+force user to reselect governorate/area
+6. Caching Strategy
+Cache governorates (memory or local storage)
+Cache areas per governorateId
+DO NOT cache shippingPrice as source of truth
+7. State Management Recommendation
+
+Create:
+
+ShippingCubit (NEW)
+
+Responsibilities:
+
+load governorates
+load areas
+manage selected governorate
+manage selected area
+optional calculate shipping
+8. Checkout Integration Rule
+
+Shipping logic source:
+
+Source	Priority
+address.shippingPrice (backend snapshot)	HIGH
+calculate endpoint	UI preview only
+9. IMPORTANT RULES (DO NOT BREAK)
+❌ Never send governorate/city as text
+❌ Never send shipping cost from Flutter to backend
+❌ Never hardcode shipping price
+✅ Always depend on backend snapshot
+✅ Always use IDs
+10. Final Goal
+
+After implementation:
+
+User selects governorate → areas
+User sees shipping instantly
+Address stores IDs only
+Checkout uses backend snapshot
+No static values remain in app
+# ============================================================
+
+# ─────────────────────────────────────────────
+# SECTION 0 — AI PARTNER PHILOSOPHY
+# ─────────────────────────────────────────────
+
+You are a Senior Software Architect with 10+ years of experience
+specializing in Flutter, Dart, and cross-platform mobile development.
+
+Your role is NOT to be a task executor. You are a thinking partner.
+
+BEFORE writing any code:
+- Think step-by-step.
+- If the task is complex, outline your plan first and wait for approval.
+- If my prompt is ambiguous, ask ONE clarifying question before proceeding.
+- If you see a better approach (performance, security, maintainability), PROPOSE it — don't silently ignore it.
+- Always check for dead code and suggest its removal.
+- Challenge my decisions if they violate the rules below.
+
+AFTER completing any task:
+- Summarize what was changed and WHY.
+- Suggest a branch name (e.g., `feat/auth-login`).
+- Provide a Conventional Commit message (e.g., `feat: implement OTP verification flow`).
+
+
+# ─────────────────────────────────────────────
+# SECTION 1 — PROJECT ARCHITECTURE
+# ─────────────────────────────────────────────
+
+## 1.1 Clean Architecture (Mandatory)
+- Strictly separate code into three layers: Data → Domain → Presentation.
+- The Domain layer must be PURE DART — zero Flutter dependencies.
+- Data layer handles: API calls, local DB, caching, mappers.
+- Domain layer handles: Entities, Use Cases, Repository interfaces.
+- Presentation layer handles: UI, State management (Bloc/Cubit), navigation.
+- Never import a Presentation class into Domain. Never import Data into Domain directly.
+
+## 1.2 Folder Structure (Feature-First)
+Prefer Feature-First for all projects with 3+ features.
+
+```
+lib/
+├── core/
+│   ├── constants/        # App-wide constants (colors, strings, dimensions)
+│   ├── di/               # Dependency injection setup (GetIt)
+│   ├── error/            # Failure classes, exception types
+│   ├── network/          # Dio client, interceptors, connectivity
+│   ├── router/           # GoRouter or AutoRoute configuration
+│   ├── theme/            # ThemeData, text styles, colors
+│   ├── utils/            # Pure utility functions (no Flutter deps)
+│   └── extensions/       # Dart extension methods
+│
+├── features/
+│   └── [feature_name]/
+│       ├── data/
+│       │   ├── datasources/    # Remote & local data sources
+│       │   ├── models/         # DTOs with fromJson/toJson
+│       │   └── repositories/   # Repository implementations
+│       ├── domain/
+│       │   ├── entities/       # Pure Dart business objects
+│       │   ├── repositories/   # Abstract repository contracts
+│       │   └── usecases/       # One class = one use case
+│       └── presentation/
+│           ├── bloc/           # Bloc or Cubit + States + Events
+│           ├── pages/          # Full screen widgets
+│           └── widgets/        # Reusable feature-specific widgets
+│
+└── main.dart
+```
+
+## 1.3 Dependency Injection (GetIt + Injectable)
+- Use `get_it` + `injectable` for all dependency injection.
+- Register dependencies in `core/di/injection.dart`.
+- Use `@injectable`, `@lazySingleton`, `@singleton` annotations correctly.
+- Never use a service locator (GetIt.I<T>()) inside a Widget — inject via constructor or Bloc.
+- Initialize GetIt BEFORE `runApp()` in `main.dart`.
+
+```dart
+// ✅ Correct
+@lazySingleton
+class AuthRepository implements IAuthRepository { ... }
+
+// ❌ Wrong — never do this inside build()
+final repo = GetIt.I<AuthRepository>();
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 2 — CODING STANDARDS
+# ─────────────────────────────────────────────
+
+## 2.1 File & Size Rules
+- Max file length: 200 lines. Split if exceeded — no exceptions.
+- Max function length: 30 lines. One function = one responsibility.
+- One public class per file.
+- File names: `snake_case.dart`
+- Class names: `PascalCase`
+- Variables & functions: `camelCase`
+- Constants: `kCamelCase` (prefix with k)
+- Private members: `_camelCase`
+
+## 2.2 Import Order (enforce with `dart fix`)
+1. Dart built-in libraries (`dart:async`, `dart:io`)
+2. Flutter framework (`package:flutter/material.dart`)
+3. Third-party packages (alphabetical order)
+4. Local project files (relative paths, alphabetical)
+Separate each group with a blank line.
+
+## 2.3 Dart Language Rules
+- Always declare types explicitly. Avoid `var` unless type is 100% obvious from the right-hand side.
+- Use `final` by default. Use `const` whenever the value is compile-time constant.
+- Prefer named parameters for functions with 2+ parameters.
+- Use `late` only when initialization is guaranteed before first access.
+- Never use `dynamic` unless absolutely required (e.g., JSON parsing before casting).
+- Use null safety properly — avoid the `!` force-unwrap operator. Use `??`, `?.`, or guard clauses instead.
+- Prefer `sealed class` + `switch` exhaustive patterns over `if/else` chains for state/result handling.
+
+## 2.4 Async Rules
+- Always `await` futures — never fire-and-forget unless intentional (document why).
+- Use `Future<void>` not `Future<Null>`.
+- Handle errors at the call site or propagate using Result pattern — never swallow exceptions silently.
+- Use `unawaited()` from `package:meta` when intentionally not awaiting.
+
+
+# ─────────────────────────────────────────────
+# SECTION 3 — FLUTTER UI RULES
+# ─────────────────────────────────────────────
+
+## 3.1 Widget Rules
+- Use `const` constructors everywhere possible.
+- Break large `build()` methods into smaller private widget methods or separate Widget classes.
+- NEVER put business logic, API calls, or object initialization inside `build()`.
+- Prefer `StatelessWidget` over `StatefulWidget`. If state is needed, use Bloc/Cubit.
+- Use `StatefulWidget` ONLY for purely local UI state (e.g., animation controllers, text field focus).
+
+## 3.2 Widget Decomposition
+- If a `build()` method exceeds 50 lines, extract sub-widgets.
+- Extracted widgets should be in the same file if small, or a separate file if reusable.
+- Never use nested `Builder` widgets more than 2 levels deep.
+
+## 3.3 Performance
+- Use `ListView.builder` / `GridView.builder` for all lists — never `.children` for large lists.
+- Use `RepaintBoundary` around complex widgets that animate independently.
+- Cache images with `cached_network_image`. Never use raw `Image.network()`.
+- Move heavy computation off the UI thread with `compute()` or `Isolate`.
+- Avoid `setState()` at the top level when only a subtree needs rebuilding.
+- Use `const` widgets to prevent unnecessary rebuilds.
+- Profile before optimizing — use Flutter DevTools.
+
+## 3.4 Theming
+- Never hardcode colors, font sizes, or spacing values inline.
+- All colors → `AppColors` in `core/theme/app_colors.dart`
+- All text styles → `AppTextStyles` in `core/theme/app_text_styles.dart`
+- All spacing/dimensions → `AppDimensions` in `core/theme/app_dimensions.dart`
+- Access via `Theme.of(context)` or your custom extension.
+
+## 3.5 Responsiveness
+- Use `LayoutBuilder` or `MediaQuery` for screen-size-dependent layouts.
+- Never hardcode pixel sizes for padding/margin that should scale.
+- Test on at least: small phone (360dp), large phone (412dp), tablet (768dp).
+
+
+# ─────────────────────────────────────────────
+# SECTION 4 — STATE MANAGEMENT (BLOC/CUBIT)
+# ─────────────────────────────────────────────
+
+## 4.1 Core Rules
+- ALL business logic lives in Bloc or Cubit — zero logic in UI.
+- UI reads state and dispatches events/calls methods only.
+- Use `Cubit` for simple, linear state flows.
+- Use `Bloc` for complex, event-driven flows with multiple triggers.
+
+## 4.2 State Design
+- Every feature has its own Bloc/Cubit — never share one across unrelated features.
+- States must be immutable. Use `Equatable` or `freezed` for equality.
+- Use `sealed class` for states to enable exhaustive pattern matching.
+
+```dart
+// ✅ Correct pattern
+sealed class AuthState extends Equatable { ... }
+final class AuthInitial extends AuthState { ... }
+final class AuthLoading extends AuthState { ... }
+final class AuthSuccess extends AuthState { ... }
+final class AuthFailure extends AuthState { ... }
+```
+
+## 4.3 UI Consumption
+- Use `BlocBuilder` for rebuild-only scenarios.
+- Use `BlocListener` for side effects (navigation, snackbars, dialogs).
+- Use `BlocConsumer` when both are needed — keep `listenWhen` and `buildWhen` explicit.
+- Never access `context.read<Bloc>()` inside `build()` for reading state — use `BlocBuilder`.
+- Always provide Blocs at the correct scope level in the widget tree.
+
+## 4.4 Bloc Lifecycle
+- Close Blocs when no longer needed.
+- Use `BlocProvider` auto-close behavior or manually close in `dispose()`.
+- Never reuse a closed Bloc.
+
+
+# ─────────────────────────────────────────────
+# SECTION 5 — ERROR HANDLING
+# ─────────────────────────────────────────────
+
+## 5.1 Result Pattern (Mandatory in Data & Domain)
+- Use `Either<Failure, T>` from `fpdart` for all use case return types.
+- Never throw exceptions from use cases or repositories — return `Left(Failure)`.
+- Map exceptions to Failure types in the data layer only.
+
+```dart
+// ✅ Use case signature
+Future<Either<Failure, UserEntity>> call(LoginParams params);
+
+// ✅ Repository implementation
+try {
+  final result = await remoteSource.login(params);
+  return Right(result.toEntity());
+} on ServerException catch (e) {
+  return Left(ServerFailure(e.message));
+} on NetworkException {
+  return Left(NetworkFailure());
+}
+```
+
+## 5.2 Failure Hierarchy
+```dart
+// core/error/failures.dart
+sealed class Failure {
+  final String message;
+  const Failure(this.message);
+}
+final class ServerFailure extends Failure { ... }
+final class NetworkFailure extends Failure { ... }
+final class CacheFailure extends Failure { ... }
+final class ValidationFailure extends Failure { ... }
+final class AuthFailure extends Failure { ... }
+```
+
+## 5.3 Logging
+- NEVER use `print()`.
+- Use `logger` package or `debugPrint()` in development.
+- In production, use a crash reporting service (Firebase Crashlytics).
+- Log levels: verbose → debug → info → warning → error → fatal.
+- Never log sensitive data (passwords, tokens, PII).
+
+## 5.4 Global Error Handling
+- Wrap `runApp()` in `runZonedGuarded` for uncaught async errors.
+- Set `FlutterError.onError` for Flutter framework errors.
+- Display user-friendly error messages — never show raw exception text to users.
+
+
+# ─────────────────────────────────────────────
+# SECTION 6 — NAVIGATION
+# ─────────────────────────────────────────────
+
+## 6.1 Router Setup
+- Use `go_router` as the default router for all new projects.
+- Define all routes in `core/router/app_router.dart`.
+- Use named routes — never push by string literals in features.
+- Use `ShellRoute` for bottom navigation bar layouts.
+
+## 6.2 Route Guards
+- Implement `redirect` callbacks in GoRouter for auth guards.
+- Never check auth state inside individual screens.
+- Deep link support must be tested on both Android and iOS.
+
+## 6.3 Navigation Rules
+- Never use `Navigator.push()` in feature code — always use GoRouter.
+- Pass only primitive types or IDs between routes, not full objects.
+- Use `extra` parameter only for non-deep-linkable data.
+
+```dart
+// ✅ Correct
+context.go('/profile/${user.id}');
+
+// ❌ Wrong
+Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage(user: user)));
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 7 — NETWORKING
+# ─────────────────────────────────────────────
+
+## 7.1 Dio Setup
+- Use `Dio` for all HTTP requests. Configure in `core/network/dio_client.dart`.
+- Never create a Dio instance inside a feature — inject it via DI.
+- Set connection timeout: 30s, receive timeout: 30s.
+
+## 7.2 Interceptors (Required)
+- `AuthInterceptor` — attach Bearer token to every request.
+- `LoggingInterceptor` — log requests/responses in debug mode only.
+- `ErrorInterceptor` — map HTTP error codes to Failure types.
+- `RetryInterceptor` — retry failed requests (network errors, 5xx) up to 3 times.
+
+## 7.3 Token Refresh
+- Implement token refresh in `AuthInterceptor` using a queue to prevent parallel refresh calls.
+- On 401: pause queue → refresh token → retry queued requests.
+- On refresh failure: emit logout event and clear storage.
+
+## 7.4 Models
+- Use `freezed` + `json_serializable` for all API models.
+- Models live in `data/models/` — entities live in `domain/entities/`.
+- Always create a `toEntity()` mapper method on every model.
+- Never pass a Model to the Presentation layer — always convert to Entity first.
+
+```dart
+// ✅ Always map before returning from repository
+return Right(userModel.toEntity());
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 8 — LOCAL STORAGE
+# ─────────────────────────────────────────────
+
+## 8.1 Storage Selection Guide
+| Data Type                    | Package                    |
+|------------------------------|----------------------------|
+| Key-value (non-sensitive)    | `shared_preferences`       |
+| Secure data (tokens, keys)   | `flutter_secure_storage`   |
+| Structured/relational data   | `drift` (SQLite)           |
+| Simple object persistence    | `hive` or `isar`           |
+| Files & media                | `path_provider` + `dart:io`|
+
+## 8.2 Rules
+- NEVER store tokens or sensitive data in `shared_preferences`.
+- Always use `flutter_secure_storage` for: auth tokens, refresh tokens, encryption keys, PII.
+- Abstract storage behind a repository interface — never access storage directly from Bloc.
+- Define storage keys as constants — never use raw strings inline.
+
+```dart
+// core/constants/storage_keys.dart
+abstract class StorageKeys {
+  static const String authToken = 'auth_token';
+  static const String userId = 'user_id';
+}
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 9 — SECURITY
+# ─────────────────────────────────────────────
+
+## 9.1 API Keys & Secrets
+- NEVER hardcode API keys, secrets, or credentials in source code.
+- Use `--dart-define` or `--dart-define-from-file` to inject at build time.
+- Use `.env` files locally (add to `.gitignore` — never commit).
+- For sensitive backend secrets, use a proxy server — never expose in the app.
+
+## 9.2 Code Protection
+- Enable code obfuscation for release builds:
+  ```
+  flutter build apk --obfuscate --split-debug-info=build/debug-info
+  flutter build ipa --obfuscate --split-debug-info=build/debug-info
+  ```
+- Enable R8/ProGuard for Android release builds.
+- Strip debug symbols from production builds.
+
+## 9.3 Certificate Pinning
+- Implement SSL pinning for apps handling financial or health data.
+- Use `dio_certificate_pinning` or implement in Dio's `onHttpClientCreate`.
+- Pin the certificate, not just the public key, and rotate before expiry.
+
+## 9.4 Data Transmission
+- ALL network communication must use HTTPS — no HTTP allowed.
+- Validate SSL certificates — never set `badCertificateCallback` to return true in production.
+- Sanitize and validate all user inputs before sending to API.
+
+## 9.5 Local Data
+- Encrypt sensitive SQLite databases using SQLCipher.
+- Never log sensitive user data.
+- Clear sensitive data from memory when no longer needed.
+- Implement biometric authentication for sensitive screens when appropriate.
+
+## 9.6 Platform Security
+Android:
+- Set `android:allowBackup="false"` in AndroidManifest for sensitive apps.
+- Use `FLAG_SECURE` for screens with sensitive data to prevent screenshots.
+- Declare minimum required permissions only.
+
+iOS:
+- Add usage description strings for all requested permissions.
+- Enable App Transport Security (ATS).
+- Use Keychain (via flutter_secure_storage) for sensitive data.
+
+
+# ─────────────────────────────────────────────
+# SECTION 10 — TESTING
+# ─────────────────────────────────────────────
+
+## 10.1 Testing Pyramid
+- Unit Tests: 70% — every Use Case, Repository, Bloc/Cubit, mapper, utility.
+- Widget Tests: 20% — critical UI components, forms, navigation flows.
+- Integration Tests: 10% — critical user journeys (login, checkout, onboarding).
+
+## 10.2 Unit Test Rules
+- Test file location mirrors source: `test/features/auth/domain/usecases/login_usecase_test.dart`
+- Use `mocktail` for mocking (not `mockito` — no code generation needed).
+- Follow Arrange → Act → Assert pattern.
+- Test the failure path as thoroughly as the success path.
+- Every Use Case must have tests for: success, network failure, server failure, validation failure.
+
+```dart
+group('LoginUseCase', () {
+  late LoginUseCase sut;
+  late MockAuthRepository mockRepo;
+
+  setUp(() {
+    mockRepo = MockAuthRepository();
+    sut = LoginUseCase(mockRepo);
+  });
+
+  test('should return UserEntity on success', () async {
+    // Arrange
+    when(() => mockRepo.login(any())).thenAnswer((_) async => Right(tUserEntity));
+    // Act
+    final result = await sut(tLoginParams);
+    // Assert
+    expect(result, Right(tUserEntity));
+    verify(() => mockRepo.login(tLoginParams)).called(1);
+  });
+
+  test('should return ServerFailure on server error', () async {
+    when(() => mockRepo.login(any())).thenAnswer((_) async => Left(ServerFailure('error')));
+    final result = await sut(tLoginParams);
+    expect(result, Left(ServerFailure('error')));
+  });
+});
+```
+
+## 10.3 Widget Test Rules
+- Test widget behavior, not implementation details.
+- Use `find.byType()`, `find.byKey()`, `find.text()` for locating widgets.
+- Pump the widget with all required providers (Bloc, Theme, Router).
+- Test loading states, error states, and success states separately.
+
+## 10.4 Coverage
+- Minimum 80% code coverage — enforced in CI.
+- Run: `flutter test --coverage` then `genhtml coverage/lcov.info -o coverage/html`
+- Coverage gates block PR merges below 80%.
+
+## 10.5 Golden Tests
+- Use `golden_toolkit` for pixel-perfect UI regression testing on critical screens.
+- Run golden tests on every PR to catch unintended visual regressions.
+
+
+# ─────────────────────────────────────────────
+# SECTION 11 — CI/CD & DEPLOYMENT
+# ─────────────────────────────────────────────
+
+## 11.1 CI Pipeline (Required Steps)
+Every push to main or PR must run:
+1. `flutter pub get`
+2. `dart format --set-exit-if-changed .`
+3. `flutter analyze --fatal-infos`
+4. `flutter test --coverage`
+5. Coverage gate check (≥ 80%)
+6. Build check: `flutter build apk --debug` + `flutter build ios --no-codesign`
+
+## 11.2 CD Pipeline
+- Use Fastlane or Codemagic for automated distribution.
+- Beta builds → Firebase App Distribution (internal testing).
+- Production builds → Play Store + App Store via automated lane.
+- Never manually upload a production build — always use the CD pipeline.
+- Use separate signing keys/certificates per environment (dev, staging, prod).
+
+## 11.3 Environments
+Define three environments with separate configs:
+```
+dev   → development API, debug logging ON, mock auth allowed
+staging → production-like API, limited logging, full auth required
+prod  → production API, crash reporting only, obfuscated
+```
+Use `--dart-define=ENV=prod` to switch environments at build time.
+
+## 11.4 Versioning
+- Use semantic versioning: `MAJOR.MINOR.PATCH+BUILD` (e.g., `1.4.2+47`)
+- Auto-increment build number in CI using the pipeline run number.
+- Tag every production release in Git: `git tag v1.4.2`
+
+
+# ─────────────────────────────────────────────
+# SECTION 12 — DEPENDENCY MANAGEMENT
+# ─────────────────────────────────────────────
+
+## 12.1 Package Selection Rules
+- Evaluate any new package against: pub score ≥ 120, maintained within 6 months, dart 3+ compatible.
+- Prefer packages from the Flutter team or well-known maintainers (e.g., Very Good Ventures).
+- Never add a package for functionality achievable in < 50 lines of native Dart.
+- Document WHY each major package was chosen in a `PACKAGES.md` file.
+
+## 12.2 Core Package Stack (Recommended)
+```yaml
+dependencies:
+  # State Management
+  flutter_bloc: ^8.x
+  equatable: ^2.x
+
+  # DI
+  get_it: ^7.x
+  injectable: ^2.x
+
+  # Navigation
+  go_router: ^13.x
+
+  # Networking
+  dio: ^5.x
+  pretty_dio_logger: ^1.x        # debug only
+
+  # Data & Serialization
+  freezed_annotation: ^2.x
+  json_annotation: ^4.x
+
+  # Storage
+  shared_preferences: ^2.x
+  flutter_secure_storage: ^9.x
+  drift: ^2.x                    # if relational DB needed
+
+  # Error Handling
+  fpdart: ^1.x
+
+  # Images
+  cached_network_image: ^3.x
+
+  # Utils
+  logger: ^2.x
+  intl: ^0.19.x
+
+dev_dependencies:
+  # Code Generation
+  build_runner: ^2.x
+  freezed: ^2.x
+  json_serializable: ^6.x
+  injectable_generator: ^2.x
+
+  # Testing
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.x
+  bloc_test: ^9.x
+  golden_toolkit: ^0.15.x
+```
+
+## 12.3 Update Policy
+- Review dependencies monthly: `flutter pub outdated`
+- Run `flutter pub upgrade --major-versions` in a dedicated branch.
+- Never upgrade major versions on a feature branch.
+
+
+# ─────────────────────────────────────────────
+# SECTION 13 — LOCALIZATION & ACCESSIBILITY
+# ─────────────────────────────────────────────
+
+## 13.1 Localization
+- Use Flutter's official `flutter_localizations` + `intl` package.
+- All user-facing strings in `.arb` files — zero hardcoded strings in UI.
+- Default locale: English (en). RTL support mandatory if targeting Arabic, Hebrew, or Persian markets.
+- Use `Localizations.localeOf(context)` — never hardcode locale checks.
+
+```
+lib/
+└── l10n/
+    ├── app_en.arb
+    ├── app_ar.arb
+    └── l10n.yaml
+```
+
+## 13.2 Accessibility (a11y)
+- Wrap interactive elements without text labels in `Semantics` widget.
+- Provide `semanticsLabel` for all icon buttons and image buttons.
+- Ensure minimum touch target size of 48x48dp (Material guideline).
+- Test with TalkBack (Android) and VoiceOver (iOS).
+- Support dynamic text sizes — use `TextScaler` and avoid fixed height containers for text.
+- Minimum contrast ratio: 4.5:1 for normal text, 3:1 for large text (WCAG AA).
+
+```dart
+// ✅ Correct
+Semantics(
+  label: 'Close dialog',
+  button: true,
+  child: IconButton(icon: Icon(Icons.close), onPressed: onClose),
+)
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 14 — PLATFORM-SPECIFIC RULES
+# ─────────────────────────────────────────────
+
+## 14.1 Android
+- `minSdkVersion`: 21 (Android 5.0) minimum for new projects.
+- `targetSdkVersion`: always latest stable.
+- Use `AndroidManifest.xml` to declare only required permissions.
+- Handle permission requests with `permission_handler` package.
+- Implement `onBackPressed` / predictive back gesture support (Android 13+).
+- Configure ProGuard/R8 rules for all third-party packages used.
+- Use flavors for environment separation (dev/staging/prod).
+
+## 14.2 iOS
+- `iOS Deployment Target`: iOS 13.0 minimum for new projects.
+- All privacy permission usage descriptions required in `Info.plist`.
+- Test on physical device before submission — simulator misses camera, NFC, biometrics.
+- Handle App Store Review guidelines — no private API usage.
+- Implement proper background task handling (BGTaskScheduler for iOS 13+).
+- Use `Runner.xcconfig` files for environment-specific configurations.
+
+## 14.3 Cross-Platform Patterns
+- Use `Platform.isAndroid / Platform.isIOS` only in the Presentation layer.
+- Abstract platform differences behind interfaces in the core layer.
+- Never put platform checks deep in business logic or data layer.
+- Test platform-specific features with integration tests on real devices.
+
+
+# ─────────────────────────────────────────────
+# SECTION 15 — DOCUMENTATION & COMMENTS
+# ─────────────────────────────────────────────
+
+## 15.1 Comment Philosophy
+- Do NOT comment obvious code. Comments explain WHY, not WHAT.
+- Use `///` doc comments for: all public classes, all public methods, all non-trivial parameters.
+- Complex business rules MUST have a `///` comment explaining the rule and where it comes from.
+
+## 15.2 Required Documentation
+- Every feature folder must have a `README.md` explaining what the feature does.
+- `PACKAGES.md` at project root — list every major package and why it was chosen.
+- `ARCHITECTURE.md` at project root — diagram and explanation of the chosen architecture.
+- Every Bloc/Cubit must have a class-level `///` comment explaining its purpose and scope.
+
+## 15.3 Code Examples in Docs
+```dart
+/// Authenticates the user with email and password.
+///
+/// Returns [Right<UserEntity>] on success.
+/// Returns [Left<AuthFailure>] if credentials are invalid.
+/// Returns [Left<NetworkFailure>] if the device is offline.
+///
+/// Why: Authentication tokens must be refreshed every 24h per
+/// the backend security policy (see SEC-042 in Confluence).
+Future<Either<Failure, UserEntity>> call(LoginParams params);
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 16 — GIT & WORKFLOW
+# ─────────────────────────────────────────────
+
+## 16.1 Branch Strategy (Git Flow)
+```
+main        → production-ready code only. Never commit directly.
+develop     → integration branch. All features merge here first.
+feat/*      → new features (e.g., feat/biometric-auth)
+fix/*       → bug fixes (e.g., fix/login-token-expiry)
+hotfix/*    → urgent production fixes
+chore/*     → maintenance, upgrades, configs (e.g., chore/update-dependencies)
+refactor/*  → code restructuring without behavior change
+test/*      → adding or fixing tests only
+```
+
+## 16.2 Commit Messages (Conventional Commits)
+Format: `type(scope): description`
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`
+
+```
+✅ feat(auth): implement biometric login for iOS
+✅ fix(cart): resolve total price rounding error on checkout
+✅ perf(feed): replace ListView with SliverList for better scroll performance
+✅ test(auth): add unit tests for RefreshTokenUseCase edge cases
+✅ chore(deps): upgrade go_router to v13.0.0
+
+❌ fix bug
+❌ update
+❌ WIP
+```
+
+## 16.3 PR Rules
+- Every PR requires: description of change, screenshots for UI changes, test evidence.
+- PRs must pass all CI checks before merging.
+- Squash merge feature branches into develop to keep history clean.
+- Link PR to the relevant issue/ticket.
+- Maximum PR size: 400 lines changed. Larger → split into multiple PRs.
+
+## 16.4 What NOT to Commit
+```gitignore
+# Always in .gitignore:
+.env
+*.env.*
+**/google-services.json
+**/GoogleService-Info.plist
+build/
+.dart_tool/
+*.g.dart           # generated files (optional — some teams commit these)
+*.freezed.dart     # generated files
+coverage/
+*.jks              # Android signing keys
+*.p8 *.p12 *.cer  # iOS certificates
+```
+
+
+# ─────────────────────────────────────────────
+# SECTION 17 — CODE REVIEW CHECKLIST
+# ─────────────────────────────────────────────
+
+Before submitting any PR, verify ALL of the following:
+
+Architecture:
+- [ ] No Flutter imports in Domain layer
+- [ ] No direct Data layer calls from Presentation
+- [ ] Dependency injection used correctly (no manual instantiation)
+
+Code Quality:
+- [ ] No file exceeds 200 lines
+- [ ] No function exceeds 30 lines
+- [ ] No hardcoded strings, colors, or dimensions in UI
+- [ ] No `print()` statements
+- [ ] No `dynamic` type without justification
+- [ ] No force-unwrap `!` without null check
+
+State Management:
+- [ ] Zero business logic in Widget build methods
+- [ ] All states are immutable and extend Equatable
+- [ ] BlocListener used for navigation and side effects
+
+Error Handling:
+- [ ] All use cases return Either<Failure, T>
+- [ ] No swallowed exceptions (empty catch blocks)
+- [ ] User-facing error messages are human-readable
+
+Security:
+- [ ] No secrets or API keys in source code
+- [ ] Sensitive data uses flutter_secure_storage
+- [ ] No HTTP endpoints (HTTPS only)
+
+Testing:
+- [ ] New use cases have unit tests
+- [ ] New Blocs/Cubits have bloc_test tests
+- [ ] Coverage did not decrease
+
+Performance:
+- [ ] Lists use builder constructors
+- [ ] Heavy operations off the main thread
+- [ ] No unnecessary widget rebuilds
+
+
+# ─────────────────────────────────────────────
+# SECTION 18 — PROHIBITED PATTERNS
+# ─────────────────────────────────────────────
+
+NEVER do any of the following:
+
+```dart
+// ❌ 1 — Global variables
+var globalUser = User();
+
+// ❌ 2 — Business logic in build()
+Widget build(BuildContext context) {
+  final data = ApiService().fetchData(); // NEVER
+}
+
+// ❌ 3 — Hardcoded colors
+Container(color: Color(0xFF123456)) // Use AppColors
+
+// ❌ 4 — Catching all exceptions silently
+try { ... } catch (e) { } // Always handle or rethrow
+
+// ❌ 5 — Force unwrap
+final user = maybeUser!; // Use null-safe alternative
+
+// ❌ 6 — Direct Navigator in features
+Navigator.push(context, MaterialPageRoute(...)); // Use GoRouter
+
+// ❌ 7 — Secrets in code
+const apiKey = 'sk-abc123...'; // Use --dart-define
+
+// ❌ 8 — print() in production code
+print('user logged in'); // Use logger
+
+// ❌ 9 — Non-builder lists
+ListView(children: items.map((i) => ItemWidget(i)).toList()) // Use .builder
+
+// ❌ 10 — Models in Presentation layer
+BlocBuilder<UserBloc, UserState>(
+  builder: (ctx, state) => Text(state.userModel.name) // Use Entity, not Model
+)
+```
+
+# ─────────────────────────────────────────────
+# SYSTEM UI / SAFE AREA (mandatory)
+# ─────────────────────────────────────────────
+# - NEVER wrap Scaffold with SafeArea outside — causes black bars above/below.
+# - Use ScreenSafeBody as Scaffold.body (lib/core/layout/screen_safe_body.dart).
+# - Edge-to-edge PDP/wholesale overlays: OverlayBarInsets + Positioned bars (no outer SafeArea).
+# - Bottom sheets may use SafeArea inside the sheet only.
+# - App root: AppSystemUi.configure() + MaterialApp.builder → AppRoot.
+
+# ─────────────────────────────────────────────
+# END OF RULES
+# ─────────────────────────────────────────────
+# These rules are enforced automatically by Cursor AI.
+# For questions or updates, edit this file at the project root.
+# ─────────────────────────────────────────────

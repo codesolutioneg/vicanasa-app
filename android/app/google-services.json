@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238424492626",
+    "project_id": "vacanca-app",
+    "storage_bucket": "vacanca-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238424492626:android:fc29e9398fc7773b6eed8b",
+        "android_client_info": {
+          "package_name": "com.codesolution.vacansa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDuOp8NeccJr9nSm-KqqZTPIHEaqxzHDo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

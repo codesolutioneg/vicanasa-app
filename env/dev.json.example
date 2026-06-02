@@ -1,0 +1,3 @@
+{
+  "_comment": "Odoo URL and DB are defined in lib/core/constants/constants.dart (AppConstants). This file is optional for other dart-define overrides only."
+}
