@@ -62,30 +62,56 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Spacer(flex: 3),
-            Center(
-              child: Image.asset(
-                AppAssets.splashLogo,
-                height: 140,
-                fit: BoxFit.contain,
+      body: Stack(
+        children: [
+          // Large transparent "V" on the right — decorative background element
+          Positioned(
+            right: -size.width * 0.18,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Text(
+                'V',
+                style: TextStyle(
+                  fontFamily: 'Georgia',
+                  fontSize: size.width * 1.05,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryMid.withValues(alpha: 0.045),
+                  height: 1,
+                  letterSpacing: -8,
+                ),
               ),
             ),
-            const Spacer(flex: 3),
-            const Center(
-              child: CupertinoActivityIndicator(
-                color: AppColors.primaryMid,
-                radius: 12,
-              ),
+          ),
+
+          // Main content
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Spacer(flex: 3),
+                Center(
+                  child: Image.asset(
+                    AppAssets.splashLogo,
+                    height: 140,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const Spacer(flex: 3),
+                const Center(
+                  child: CupertinoActivityIndicator(
+                    color: AppColors.primaryMid,
+                    radius: 12,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spaceLg + AppDimensions.spaceMd),
+              ],
             ),
-            const SizedBox(height: AppDimensions.spaceLg + AppDimensions.spaceMd),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

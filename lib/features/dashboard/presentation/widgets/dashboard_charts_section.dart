@@ -25,28 +25,16 @@ class DashboardChartsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Monthly Revenue & Profit Trend', style: AppTextStyles.headlineSm),
-        const SizedBox(height: AppDimensions.spaceSm),
-        LiquidGlassCard(
-          addTealShimmer: true,
-          padding: const EdgeInsets.all(12),
-          child: SizedBox(
-            height: 220,
-            child: monthlyList.isEmpty
-                ? const Center(child: Text('No monthly data'))
-                : LineChart(_trendChart(monthlyList)),
-          ),
-        ),
-        const SizedBox(height: AppDimensions.spaceLg),
-        Text('Profit Distribution', style: AppTextStyles.headlineSm),
-        const SizedBox(height: AppDimensions.spaceSm),
-        LiquidGlassCard(
-          addTealShimmer: true,
-          padding: const EdgeInsets.all(12),
-          child: SizedBox(
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+
+    final pie = LiquidGlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Profit Distribution', style: AppTextStyles.headlineSm),
+          const SizedBox(height: 16),
+          SizedBox(
             height: 220,
             child: _ProfitPie(
               yourShare: yourShare,
@@ -55,7 +43,75 @@ class DashboardChartsSection extends StatelessWidget {
               isLoss: isLoss,
             ),
           ),
+        ],
+      ),
+    );
+
+    final trend = LiquidGlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Revenue vs Cost Trend',
+                  style: AppTextStyles.headlineSm,
+                ),
+              ),
+              _legendDot(AppColors.kpiRevenue, 'Revenue'),
+              const SizedBox(width: 12),
+              _legendDot(AppColors.kpiExpense, 'Cost'),
+              const SizedBox(width: 12),
+              _legendDot(AppColors.kpiProfit, 'Profit'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: monthlyList.isEmpty
+                ? const Center(child: Text('No monthly data'))
+                : LineChart(_trendChart(monthlyList)),
+          ),
+        ],
+      ),
+    );
+
+    if (wide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 1, child: pie),
+          const SizedBox(width: AppDimensions.spaceMd),
+          Expanded(flex: 2, child: trend),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        pie,
+        const SizedBox(height: AppDimensions.spaceMd),
+        trend,
+      ],
+    );
+  }
+
+  Widget _legendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
+        const SizedBox(width: 4),
+        Text(label, style: AppTextStyles.caption.copyWith(fontSize: 10)),
       ],
     );
   }
@@ -79,7 +135,7 @@ class DashboardChartsSection extends StatelessWidget {
         show: true,
         drawVerticalLine: false,
         getDrawingHorizontalLine: (_) =>
-            FlLine(color: Colors.black.withValues(alpha: 0.05)),
+            FlLine(color: AppColors.borderLight, strokeWidth: 1),
       ),
       titlesData: FlTitlesData(
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -96,28 +152,19 @@ class DashboardChartsSection extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   label.length > 7 ? label.substring(5) : label,
-                  style: const TextStyle(fontSize: 9),
+                  style: AppTextStyles.caption.copyWith(fontSize: 9),
                 ),
               );
             },
           ),
         ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 48,
-            getTitlesWidget: (v, _) => Text(
-              AppFormatters.currency.format(v),
-              style: const TextStyle(fontSize: 8),
-            ),
-          ),
-        ),
+        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
       borderData: FlBorderData(show: false),
       lineBarsData: [
         _line(revSpots, AppColors.kpiRevenue, fill: true),
-        _line(costSpots, AppColors.kpiExpense, width: 2),
-        _line(profitSpots, AppColors.kpiProfit, width: 3),
+        _line(costSpots, AppColors.kpiExpense, width: 2, dashed: true),
+        _line(profitSpots, AppColors.kpiProfit, width: 2.5),
       ],
     );
   }
@@ -127,18 +174,17 @@ class DashboardChartsSection extends StatelessWidget {
     Color color, {
     bool fill = false,
     double width = 2,
+    bool dashed = false,
   }) {
     return LineChartBarData(
       spots: spots,
       isCurved: true,
       color: color,
       barWidth: width,
+      dashArray: dashed ? [4, 4] : null,
       dotData: const FlDotData(show: false),
       belowBarData: fill
-          ? BarAreaData(
-              show: true,
-              color: color.withValues(alpha: 0.1),
-            )
+          ? BarAreaData(show: true, color: color.withValues(alpha: 0.1))
           : BarAreaData(show: false),
     );
   }
@@ -159,72 +205,76 @@ class _ProfitPie extends StatelessWidget {
   final double totalProfit;
   final bool isLoss;
 
+  static const _palette = [
+    AppColors.primaryMid,
+    AppColors.accentGreen,
+    AppColors.accentOrange,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final total = yourShare + companyShare;
     if (total <= 0) {
       return const Center(child: Text('No profit data'));
     }
-    final yourColor = isLoss ? AppColors.accentRed : AppColors.primaryMid;
-    final companyColor = isLoss ? AppColors.primaryPale : AppColors.primaryDark;
 
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
       children: [
-        PieChart(
-          PieChartData(
-            sectionsSpace: 2,
-            centerSpaceRadius: 56,
-            sections: [
-              PieChartSectionData(
-                value: yourShare,
-                color: yourColor,
-                title: '',
-                radius: 40,
+        Expanded(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 56,
+                  sections: [
+                    PieChartSectionData(
+                      value: yourShare,
+                      color: isLoss ? AppColors.accentRed : _palette[0],
+                      title: '',
+                      radius: 36,
+                    ),
+                    PieChartSectionData(
+                      value: companyShare,
+                      color: isLoss ? AppColors.accentOrange : _palette[1],
+                      title: '',
+                      radius: 36,
+                    ),
+                  ],
+                ),
               ),
-              PieChartSectionData(
-                value: companyShare,
-                color: companyColor,
-                title: '',
-                radius: 40,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    AppFormatters.money(totalProfit.abs()),
+                    style: AppTextStyles.kpiValue.copyWith(fontSize: 16),
+                  ),
+                  Text(
+                    isLoss ? 'Net Loss' : 'Net Profit',
+                    style: AppTextStyles.caption,
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Text(
-              isLoss ? 'Total Loss' : 'Total Profit',
-              style: AppTextStyles.caption,
+            _legend(
+              isLoss ? 'Your Loss' : 'Your Share',
+              isLoss ? AppColors.accentRed : _palette[0],
+              yourShare,
             ),
-            Text(
-              AppFormatters.money(totalProfit),
-              style: AppTextStyles.kpiValue.copyWith(
-                color: isLoss ? AppColors.accentRed : AppColors.textPrimary,
-                fontSize: 14,
-              ),
+            _legend(
+              isLoss ? 'Company Loss' : 'Company Share',
+              isLoss ? AppColors.accentOrange : _palette[1],
+              companyShare,
             ),
           ],
-        ),
-        Positioned(
-          bottom: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _legend(
-                isLoss ? 'Your Loss' : 'Your Share',
-                yourColor,
-                yourShare,
-              ),
-              const SizedBox(width: 16),
-              _legend(
-                isLoss ? 'Company Loss' : 'Company Share',
-                companyColor,
-                companyShare,
-              ),
-            ],
-          ),
         ),
       ],
     );
@@ -234,9 +284,22 @@ class _ProfitPie extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text('$label: ${AppFormatters.money(value)}', style: const TextStyle(fontSize: 10)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: AppTextStyles.caption.copyWith(fontSize: 10)),
+            Text(
+              AppFormatters.money(value),
+              style: AppTextStyles.captionBold.copyWith(fontSize: 11),
+            ),
+          ],
+        ),
       ],
     );
   }

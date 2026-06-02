@@ -71,6 +71,8 @@ class _PnlPageState extends State<PnlPage> {
     final years = (_data!['available_years'] as List?)?.cast<int>() ?? [_year];
 
     return ListView(
+      primary: false,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppDimensions.spaceMd),
       children: [
         LiquidGlassCard(

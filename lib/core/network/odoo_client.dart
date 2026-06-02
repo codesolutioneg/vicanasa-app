@@ -105,24 +105,34 @@ class OdooClient {
     }
   }
 
+  /// Portal session login (CORS-enabled for Flutter web).
+  static const authenticatePath = '/my/financial/api/auth/authenticate';
+  static const logoutPath = '/my/financial/api/auth/logout';
+
   Future<void> authenticate({
     required String db,
     required String login,
     required String password,
   }) async {
     final result = await jsonRpc(
-      '/web/session/authenticate',
+      authenticatePath,
       params: {'db': db, 'login': login, 'password': password},
     );
     final uid = result['uid'];
-    if (uid == null || uid == false) {
+    final sessionId = result['session_id'];
+    if ((uid == null || uid == false) &&
+        (sessionId == null || sessionId == false || '$sessionId'.isEmpty)) {
       throw AuthException('Invalid credentials');
     }
   }
 
   Future<void> logout() async {
     try {
-      await _dio.get('/web/session/logout');
-    } catch (_) {}
+      await jsonRpc(logoutPath);
+    } catch (_) {
+      try {
+        await _dio.get('/web/session/logout');
+      } catch (_) {}
+    }
   }
 }

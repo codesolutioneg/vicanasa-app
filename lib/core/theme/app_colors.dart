@@ -1,81 +1,83 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens — iOS liquid glass teal palette.
+/// Partner Financial Portal — slate canvas + blue primary (web mockup).
 abstract final class AppColors {
   AppColors._();
 
-  // Primary teal
-  static const Color primaryDark = Color(0xFF006B6B);
-  static const Color primaryMid = Color(0xFF009999);
-  static const Color primaryLight = Color(0xFF00C2C2);
-  static const Color primaryPale = Color(0xFFE0F7F7);
+  // Primary blue
+  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primaryMid = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFF3B82F6);
+  static const Color primaryPale = Color(0xFFEFF6FF);
 
-  // Semantic accents (iOS system colors)
-  static const Color accentGreen = Color(0xFF34C759);
-  static const Color accentBlue = Color(0xFF007AFF);
-  static const Color accentOrange = Color(0xFFFF9500);
-  static const Color accentRed = Color(0xFFFF3B30);
-  static const Color accentPurple = Color(0xFFAF52DE);
+  // Semantic accents
+  static const Color accentGreen = Color(0xFF10B981);
+  static const Color accentBlue = Color(0xFF2563EB);
+  static const Color accentOrange = Color(0xFFF59E0B);
+  static const Color accentRed = Color(0xFFEF4444);
+  static const Color accentPurple = Color(0xFF8B5CF6);
+  static const Color accentCyan = Color(0xFF06B6D4);
 
   // Text
-  static const Color textPrimary = Color(0xFF1C1C1E);
-  static const Color textSecondary = Color(0xFF3C3C43);
-  static const Color textTertiary = Color(0xFF48484A);
-  static const Color textMuted = Color(0xFF8E8E93);
+  static const Color textPrimary = Color(0xFF111827);
+  static const Color textSecondary = Color(0xFF4B5563);
+  static const Color textTertiary = Color(0xFF6B7280);
+  static const Color textMuted = Color(0xFF9CA3AF);
   static const Color textOnDark = Color(0xFFFFFFFF);
 
-  // Backgrounds — cool gray canvas so white glass cards read clearly
-  static const Color bgPrimary = Color(0xFFE8ECF1);
+  // Backgrounds
+  static const Color bgPrimary = Color(0xFFF8FAFC);
   static const Color bgSecondary = Color(0xFFFFFFFF);
-  static const Color bgTertiary = Color(0xFFD8DEE6);
+  static const Color bgTertiary = Color(0xFFF1F5F9);
 
-  // Glass / frosted
-  static const Color glassFill = Color(0xD9FFFFFF);
-  static const Color glassBorder = Color(0x66FFFFFF);
-  static const Color glassShimmer = Color(0x1AFFFFFF);
-  static const Color glassOverlay = Color(0x0D009999);
+  // Surfaces
+  static const Color cardBorder = Color(0xFFF3F4F6);
+  static const Color glassFill = Color(0xFFFFFFFF);
+  static const Color glassBorder = Color(0xFFE5E7EB);
+  static const Color glassShimmer = Color(0x00000000);
+  static const Color glassOverlay = Color(0x00000000);
 
   // Borders
-  static const Color border = Color(0xFFC6C6C8);
-  static const Color borderLight = Color(0xFFE5E5EA);
+  static const Color border = Color(0xFFD1D5DB);
+  static const Color borderLight = Color(0xFFE5E7EB);
 
   // Dashboard KPI semantic
-  static const Color kpiRevenue = Color(0xFF34C759);
-  static const Color kpiCost = Color(0xFFFF9500);
-  static const Color kpiExpense = Color(0xFFFF3B30);
-  static const Color kpiProfit = Color(0xFF007AFF);
-  static const Color kpiCapital = Color(0xFF5856D6);
-  static const Color kpiDistrib = Color(0xFFFF2D55);
+  static const Color kpiRevenue = Color(0xFF2563EB);
+  static const Color kpiCost = Color(0xFFF59E0B);
+  static const Color kpiExpense = Color(0xFFEF4444);
+  static const Color kpiProfit = Color(0xFF10B981);
+  static const Color kpiShare = Color(0xFF8B5CF6);
+  static const Color kpiCapital = Color(0xFF06B6D4);
+  static const Color kpiDistrib = Color(0xFFEC4899);
 
   // Warning
-  static const Color warningBg = Color(0xFFFFF9C4);
-  static const Color warningBorder = Color(0xFFFFCC00);
+  static const Color warningBg = Color(0xFFFFFBEB);
+  static const Color warningBorder = Color(0xFFF59E0B);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryDark, primaryLight],
+    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
   );
 
   static const LinearGradient splashGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFF004F4F), Color(0xFF007A7A), Color(0xFF00AAAA)],
-    stops: [0.0, 0.5, 1.0],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
   );
 
   static const LinearGradient glassGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xCCFFFFFF), Color(0x88FFFFFF)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
   );
 
   static const LinearGradient capitalGradient = LinearGradient(
-    colors: [Color(0xFF5856D6), Color(0xFF7B79E8)],
+    colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
   );
 
   static const LinearGradient distribGradient = LinearGradient(
-    colors: [Color(0xFFFF2D55), Color(0xFFFF6B8A)],
+    colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
   );
 }

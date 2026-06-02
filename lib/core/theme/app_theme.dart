@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_dimensions.dart';
@@ -9,8 +10,15 @@ import 'app_text_styles.dart';
 abstract final class AppTheme {
   AppTheme._();
 
+  static TextTheme _textTheme(TextTheme base) {
+    return GoogleFonts.dmSansTextTheme(base).apply(
+      bodyColor: AppColors.textPrimary,
+      displayColor: AppColors.textPrimary,
+    );
+  }
+
   static ThemeData light() {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bgPrimary,
@@ -18,18 +26,27 @@ abstract final class AppTheme {
         seedColor: AppColors.primaryMid,
         brightness: Brightness.light,
         primary: AppColors.primaryMid,
-        secondary: AppColors.accentBlue,
+        secondary: AppColors.accentGreen,
         surface: AppColors.bgSecondary,
       ),
+    );
+
+    return base.copyWith(
+      textTheme: _textTheme(base.textTheme),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.bgPrimary.withValues(alpha: 0.85),
+        backgroundColor: AppColors.bgSecondary,
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: AppColors.textPrimary,
-        titleTextStyle: AppTextStyles.headlineSm,
+        titleTextStyle: GoogleFonts.dmSans(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         centerTitle: false,
         toolbarHeight: 52,
+        surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         color: AppColors.bgSecondary,
@@ -37,58 +54,56 @@ abstract final class AppTheme {
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.cardBorder),
         ),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.bgSecondary,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spaceMd,
-          vertical: AppDimensions.spaceSm + 4,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border, width: 0.5),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: const BorderSide(color: AppColors.borderLight, width: 0.5),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          borderSide: const BorderSide(color: AppColors.primaryMid, width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primaryMid, width: 2),
         ),
         hintStyle: AppTextStyles.bodyMd,
-        labelStyle: AppTextStyles.labelLg,
+        labelStyle: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primaryMid,
           foregroundColor: Colors.white,
-          textStyle: AppTextStyles.headlineSm.copyWith(color: Colors.white),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.spaceLg,
-            vertical: AppDimensions.spaceMd,
+          textStyle: GoogleFonts.dmSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 0,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.bgSecondary.withValues(alpha: 0.85),
+        backgroundColor: AppColors.bgSecondary,
         indicatorColor: AppColors.primaryPale,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppTextStyles.caption.copyWith(
-              color: AppColors.primaryMid,
+            return GoogleFonts.dmSans(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
+              color: AppColors.primaryMid,
             );
           }
-          return AppTextStyles.caption.copyWith(color: AppColors.textMuted);
+          return GoogleFonts.dmSans(fontSize: 12, color: AppColors.textMuted);
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -104,35 +119,29 @@ abstract final class AppTheme {
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.borderLight,
-        thickness: 0.5,
+        thickness: 1,
         space: 0,
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.bgTertiary,
         selectedColor: AppColors.primaryPale,
         labelStyle: AppTextStyles.bodySm,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
-        modalBackgroundColor: Colors.transparent,
+        backgroundColor: AppColors.bgSecondary,
+        modalBackgroundColor: AppColors.bgSecondary,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.radiusXxl),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.textPrimary.withValues(alpha: 0.92),
-        contentTextStyle: AppTextStyles.bodyMd.copyWith(color: Colors.white),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        ),
+        contentTextStyle: GoogleFonts.dmSans(fontSize: 14, color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         behavior: SnackBarBehavior.floating,
       ),
       listTileTheme: const ListTileThemeData(
@@ -140,21 +149,15 @@ abstract final class AppTheme {
         selectedTileColor: AppColors.primaryPale,
         iconColor: AppColors.primaryMid,
         textColor: AppColors.textPrimary,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: AppDimensions.spaceMd,
-          vertical: AppDimensions.spaceXs,
-        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(AppDimensions.radiusSm)),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
       ),
       cupertinoOverrideTheme: const CupertinoThemeData(
         primaryColor: AppColors.primaryMid,
         scaffoldBackgroundColor: AppColors.bgPrimary,
         barBackgroundColor: AppColors.bgSecondary,
-        textTheme: CupertinoTextThemeData(
-          primaryColor: AppColors.primaryMid,
-        ),
       ),
     );
   }

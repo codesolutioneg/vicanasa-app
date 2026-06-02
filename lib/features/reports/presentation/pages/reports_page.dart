@@ -85,6 +85,8 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return ListView(
+      primary: false,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppDimensions.spaceMd),
       children: [
         LiquidGlassCard(

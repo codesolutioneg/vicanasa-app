@@ -5,19 +5,20 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_dimensions.dart';
 
-/// iOS frosted glass surface.
+/// Clean white surface card (Partner Financial Portal style).
 class LiquidGlassCard extends StatelessWidget {
   const LiquidGlassCard({
     super.key,
     required this.child,
     this.padding,
     this.borderRadius,
-    this.blurSigma = AppDimensions.blurRadius,
+    this.blurSigma = 0,
     this.tintColor,
     this.addTealShimmer = false,
     this.width,
     this.height,
     this.onTap,
+    this.elevated = true,
   });
 
   final Widget child;
@@ -29,72 +30,60 @@ class LiquidGlassCard extends StatelessWidget {
   final double? width;
   final double? height;
   final VoidCallback? onTap;
+  final bool elevated;
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? AppDimensions.radiusMd;
+    final radius = borderRadius ?? 12;
 
-    Widget card = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            gradient: addTealShimmer
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.88),
-                      (tintColor ?? AppColors.primaryLight).withValues(alpha: 0.06),
-                      Colors.white.withValues(alpha: 0.75),
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
-                  )
-                : LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.88),
-                      Colors.white.withValues(alpha: 0.72),
-                    ],
-                  ),
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(
-              color: AppColors.glassBorder,
-              width: AppDimensions.glassBorderWidth,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-              BoxShadow(
-                color: AppColors.primaryMid.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(AppDimensions.spaceMd),
-            child: child,
-          ),
-        ),
+    Widget surface = Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: elevated
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(AppDimensions.spaceMd),
+        child: child,
       ),
     );
 
-    if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
+    if (blurSigma > 0) {
+      surface = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          child: surface,
+        ),
+      );
     }
-    return card;
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius),
+          child: surface,
+        ),
+      );
+    }
+    return surface;
   }
 }
 
-/// Stronger blur for modals / bottom sheets.
+/// Rounded sheet container for modals.
 class LiquidGlassModal extends StatelessWidget {
   const LiquidGlassModal({super.key, required this.child, this.padding});
 
@@ -104,9 +93,9 @@ class LiquidGlassModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LiquidGlassCard(
-      blurSigma: 40,
       borderRadius: AppDimensions.radiusXxl,
       padding: padding ?? const EdgeInsets.all(AppDimensions.spaceLg),
+      elevated: true,
       child: child,
     );
   }

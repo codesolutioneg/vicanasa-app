@@ -62,6 +62,8 @@ class _DistributionsPageState extends State<DistributionsPage> {
         final quarterly = _data!['quarterly_data'] as List? ?? [];
         final byBranch = _data!['distribution_by_branch'] as List? ?? [];
         return ListView(
+          primary: false,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
             Text('${l10n.year}: $_year', style: Theme.of(context).textTheme.titleMedium),

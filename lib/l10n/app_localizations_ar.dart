@@ -67,6 +67,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accessDeniedMessage => 'حسابك غير مفعّل كشريك مالي.';
 
   @override
+  String get welcomeBack => 'مرحباً بعودتك';
+
+  @override
   String get logout => 'تسجيل الخروج';
 
   @override

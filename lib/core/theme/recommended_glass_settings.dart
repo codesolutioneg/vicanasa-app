@@ -8,14 +8,14 @@ abstract final class RecommendedGlassSettings {
   RecommendedGlassSettings._();
 
   static const bottomBar = LiquidGlassSettings(
-    blur: 20,
-    thickness: 20,
-    glassColor: Color.fromRGBO(255, 255, 255, 0.18),
+    blur: 24,
+    thickness: 24,
+    glassColor: Color.fromRGBO(255, 255, 255, 0.55),
     lightAngle: 0.75 * math.pi,
-    lightIntensity: 0.7,
-    ambientStrength: 0.5,
-    saturation: 1.2,
-    refractiveIndex: 1.2,
+    lightIntensity: 0.8,
+    ambientStrength: 0.45,
+    saturation: 1.15,
+    refractiveIndex: 1.25,
     chromaticAberration: 0.0,
   );
 

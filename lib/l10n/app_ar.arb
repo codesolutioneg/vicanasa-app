@@ -19,6 +19,7 @@
   "loginError": "بيانات غير صحيحة أو الوصول مرفوض",
   "accessDeniedTitle": "الوصول مرفوض",
   "accessDeniedMessage": "حسابك غير مفعّل كشريك مالي.",
+  "welcomeBack": "مرحباً بعودتك",
   "logout": "تسجيل الخروج",
   "navDashboard": "لوحة التحكم",
   "navPnl": "الأرباح والخسائر",

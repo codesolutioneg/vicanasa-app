@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/liquid_glass.dart';
 import '../../../../core/utils/app_formatters.dart';
+import '../../../../core/widgets/portal_kpi_card.dart';
 
 class DashboardMainKpis extends StatelessWidget {
   const DashboardMainKpis({
@@ -15,7 +14,8 @@ class DashboardMainKpis extends StatelessWidget {
     required this.expense,
     required this.netProfit,
     required this.partnerShare,
-    required this.revenueGrouped,
+    required this.capitalBalance,
+    required this.sharePercentage,
     this.onRevenueTap,
     this.onDeductionsTap,
   });
@@ -25,139 +25,99 @@ class DashboardMainKpis extends StatelessWidget {
   final double expense;
   final double netProfit;
   final double partnerShare;
-  final List<Map<String, dynamic>> revenueGrouped;
+  final double capitalBalance;
+  final double sharePercentage;
   final VoidCallback? onRevenueTap;
   final VoidCallback? onDeductionsTap;
 
-  double get totalDeductions => cost + expense;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _MainKpiCard(
-          label: 'TOTAL REVENUE',
-          value: revenue,
-          icon: CupertinoIcons.arrow_up_right,
-          color: AppColors.accentGreen,
-          onTap: onRevenueTap,
-          breakdown: revenueGrouped
-              .map((g) => '${g['group_name']}: ${AppFormatters.money(_amount(g))}')
-              .toList(),
-        ),
-        const SizedBox(height: AppDimensions.spaceSm),
-        _MainKpiCard(
-          label: 'TOTAL DEDUCTIONS',
-          value: totalDeductions,
-          icon: CupertinoIcons.arrow_down_right,
-          color: AppColors.accentRed,
-          onTap: onDeductionsTap,
-          breakdown: [
-            'Costs: ${AppFormatters.money(cost)}',
-            'Expenses: ${AppFormatters.money(expense)}',
-          ],
-        ),
-        const SizedBox(height: AppDimensions.spaceSm),
-        Row(
-          children: [
-            Expanded(
-              child: _MainKpiCard(
-                label: 'COMPANY NET PROFIT',
-                value: netProfit,
-                icon: CupertinoIcons.building_2_fill,
-                color: AppColors.kpiProfit,
-                compact: true,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spaceSm),
-            Expanded(
-              child: _MainKpiCard(
-                label: 'YOUR PROFIT SHARE',
-                value: partnerShare,
-                icon: CupertinoIcons.money_dollar_circle_fill,
-                color: AppColors.accentBlue,
-                compact: true,
-                highlight: true,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+  String? _pctOfRevenue(double part) {
+    if (revenue <= 0) return null;
+    return '${AppFormatters.percent1.format(part / revenue * 100)}% of revenue';
   }
 
-  double _amount(Map<String, dynamic> g) =>
-      (g['total_amount'] as num?)?.toDouble() ?? 0;
-}
-
-class _MainKpiCard extends StatelessWidget {
-  const _MainKpiCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    this.breakdown = const [],
-    this.onTap,
-    this.compact = false,
-    this.highlight = false,
-  });
-
-  final String label;
-  final double value;
-  final IconData icon;
-  final Color color;
-  final List<String> breakdown;
-  final VoidCallback? onTap;
-  final bool compact;
-  final bool highlight;
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: LiquidGlassCard(
-        addTealShimmer: true,
-        padding: EdgeInsets.all(compact ? 12 : 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primaryPale,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-              ),
-              child: Icon(icon, color: color, size: compact ? 22 : 28),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: AppTextStyles.kpiLabel),
-                  const SizedBox(height: 4),
-                  Text(
-                    AppFormatters.money(value),
-                    style: AppTextStyles.kpiValue.copyWith(
-                      color: highlight ? AppColors.accentGreen : color,
-                      fontSize: compact ? 16 : 22,
-                    ),
-                  ),
-                  if (breakdown.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    ...breakdown.map(
-                      (line) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(line, style: AppTextStyles.caption),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+    final width = MediaQuery.sizeOf(context).width;
+    final crossCount = width >= 1200
+        ? 6
+        : width >= 900
+            ? 3
+            : 2;
+    final aspect = crossCount >= 6
+        ? 1.4
+        : crossCount == 3
+            ? 1.55
+            : 1.5;
+
+    final margin = revenue > 0 ? netProfit / revenue * 100 : 0.0;
+    final cards = [
+      PortalKpiCard(
+        label: 'Revenue',
+        value: revenue,
+        icon: CupertinoIcons.arrow_up_right,
+        iconColor: AppColors.kpiRevenue,
+        iconBackground: const Color(0xFFEFF6FF),
+        onTap: onRevenueTap,
       ),
+      PortalKpiCard(
+        label: 'Direct Cost',
+        value: cost,
+        icon: CupertinoIcons.doc_text,
+        iconColor: AppColors.kpiCost,
+        iconBackground: const Color(0xFFFFF7ED),
+        subtitle: _pctOfRevenue(cost),
+        onTap: onDeductionsTap,
+      ),
+      PortalKpiCard(
+        label: 'Expenses',
+        value: expense,
+        icon: CupertinoIcons.creditcard,
+        iconColor: AppColors.kpiExpense,
+        iconBackground: const Color(0xFFFEF2F2),
+        subtitle: _pctOfRevenue(expense),
+        onTap: onDeductionsTap,
+      ),
+      PortalKpiCard(
+        label: 'Net Profit',
+        value: netProfit,
+        icon: CupertinoIcons.money_dollar_circle_fill,
+        iconColor: AppColors.kpiProfit,
+        iconBackground: const Color(0xFFECFDF5),
+        subtitle: revenue > 0
+            ? '${AppFormatters.percent1.format(margin)}% margin'
+            : null,
+      ),
+      PortalKpiCard(
+        label: 'My Share',
+        value: partnerShare,
+        icon: CupertinoIcons.person_fill,
+        iconColor: AppColors.kpiShare,
+        iconBackground: const Color(0xFFF5F3FF),
+        valueColor: AppColors.primaryMid,
+        subtitle: sharePercentage > 0
+            ? '${AppFormatters.percent1.format(sharePercentage)}% ownership'
+            : null,
+      ),
+      PortalKpiCard(
+        label: 'Capital',
+        value: capitalBalance,
+        icon: CupertinoIcons.building_2_fill,
+        iconColor: AppColors.kpiCapital,
+        iconBackground: const Color(0xFFECFEFF),
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossCount,
+        mainAxisSpacing: AppDimensions.spaceMd,
+        crossAxisSpacing: AppDimensions.spaceMd,
+        childAspectRatio: aspect,
+      ),
+      itemCount: cards.length,
+      itemBuilder: (_, i) => cards[i],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,7 +39,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await FirebaseMessagingService.instance.subscribeUserTopics(email);
       return const Right(unit);
     } on NetworkException {
-      return const Left(NetworkFailure());
+      return Left(NetworkFailure(_networkMessage()));
     } on AuthException {
       return const Left(AuthFailure());
     } on ServerException catch (e) {
@@ -64,4 +65,13 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<String?> getStoredLogin() =>
       _secure.read(key: StorageKeys.sessionLogin);
+
+  String _networkMessage() {
+    if (kIsWeb) {
+      return 'Cannot reach Odoo from the browser (CORS/network). '
+          'Upgrade partner_financial_portal on the server (≥18.0.1.4.0), '
+          'or run the app on Windows/Android instead of Chrome.';
+    }
+    return 'No connection to the server. Check your internet.';
+  }
 }

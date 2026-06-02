@@ -2,18 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-
-import '../../../../core/constants/env.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/liquid_glass.dart';
-import '../../../../core/theme/recommended_glass_settings.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../financial/domain/entities/partner_info.dart';
+import '../cubit/filter_cubit.dart';
 import '../widgets/branch_selector.dart';
 import '../widgets/date_filter_bar.dart';
 
@@ -26,15 +23,6 @@ class FinancialShellPage extends StatefulWidget {
 }
 
 class _FinancialShellPageState extends State<FinancialShellPage> {
-  final _drawerKey = GlobalKey<ScaffoldState>();
-
-  int _mobileIndex(String loc) {
-    if (loc.startsWith(AppRoutes.pnl)) return 1;
-    if (loc.startsWith(AppRoutes.comparison)) return 2;
-    if (loc.startsWith(AppRoutes.reports)) return 3;
-    return 0;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -84,78 +72,21 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
     }
 
     return Scaffold(
-      key: _drawerKey,
-      drawer: Drawer(
-        backgroundColor: Colors.transparent,
-        child: _Sidebar(
-          partner: partner,
-          navItems: [...navItems, ...moreItems],
-          moreItems: const [],
-          current: loc,
-          onLogout: () => context.read<AuthCubit>().logout(),
-          inDrawer: true,
-        ),
-      ),
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(CupertinoIcons.bars),
-          onPressed: () => _drawerKey.currentState?.openDrawer(),
-        ),
-        title: Text(_titleFor(loc, l10n), style: AppTextStyles.headlineSm),
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.ellipsis_vertical),
-            onPressed: () => _showMore(context, moreItems),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.bgPrimary,
       body: Column(
         children: [
-          const DateFilterBar(),
-          const BranchSelector(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.bottomNavHeight),
-              child: widget.child,
-            ),
-          ),
+          _MobileHeader(partner: partner, l10n: l10n),
+          Expanded(child: widget.child),
         ],
       ),
-      extendBody: true,
-      bottomNavigationBar: AdaptiveLiquidGlassLayer(
-        settings: RecommendedGlassSettings.bottomBar,
-        child: GlassBottomBar(
-          tabs: navItems
-              .map(
-                (e) => GlassBottomBarTab(
-                  label: e.$2,
-                  icon: Icon(e.$3, color: AppColors.textMuted),
-                  activeIcon: Icon(e.$3, color: AppColors.primaryDark),
-                  glowColor: AppColors.primaryLight,
-                ),
-              )
-              .toList(),
-          selectedIndex: _mobileIndex(loc),
-          onTabSelected: (i) => context.go(navItems[i].$1),
-          glassSettings: RecommendedGlassSettings.bottomBar,
-          selectedIconColor: AppColors.primaryDark,
-          unselectedIconColor: AppColors.textMuted,
-          indicatorColor: AppColors.primaryMid.withValues(alpha: 0.35),
-          textStyle: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-        ),
+      bottomNavigationBar: _MobileBottomNav(
+        navItems: navItems,
+        moreItems: moreItems,
+        currentLoc: loc,
+        onLogout: () => context.read<AuthCubit>().logout(),
+        onMore: () => _showMore(context, moreItems),
       ),
     );
-  }
-
-  String _titleFor(String loc, AppLocalizations l10n) {
-    if (loc.startsWith(AppRoutes.pnl)) return l10n.navPnl;
-    if (loc.startsWith(AppRoutes.comparison)) return l10n.navComparison;
-    if (loc.startsWith(AppRoutes.reports)) return l10n.navReports;
-    if (loc.startsWith(AppRoutes.growth)) return l10n.navGrowth;
-    if (loc.startsWith(AppRoutes.branches)) return l10n.navBranches;
-    if (loc.startsWith(AppRoutes.distributions)) return l10n.navDistributions;
-    if (loc.startsWith(AppRoutes.capital)) return l10n.navCapital;
-    return l10n.navDashboard;
   }
 
   void _showMore(BuildContext context, List<(String, String, IconData)> items) {
@@ -185,6 +116,7 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
   }
 }
 
+// ─── Shared desktop/wide header ───────────────────────────────────────────────
 class _Header extends StatelessWidget {
   const _Header({this.partner});
   final PartnerInfo? partner;
@@ -192,20 +124,324 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (partner == null) return const SizedBox.shrink();
-    final avatarUrl =
-        '${Env.odooBaseUrl}/web/image/res.partner/${partner!.partnerId}/avatar_128';
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spaceMd),
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: const BoxDecoration(
+        color: AppColors.bgSecondary,
+        border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundImage: NetworkImage(avatarUrl),
-            onBackgroundImageError: (_, __) {},
-            child: const Icon(CupertinoIcons.person_fill, color: AppColors.primaryMid),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.welcomeBack, style: AppTextStyles.caption),
+                Text(
+                  partner!.partnerName ?? '',
+                  style: AppTextStyles.headlineSm,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 12),
-          Text(partner!.partnerName ?? '', style: AppTextStyles.headlineSm),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(CupertinoIcons.gear, color: AppColors.textSecondary),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Mobile sticky header (HTML design) ───────────────────────────────────────
+class _MobileHeader extends StatelessWidget {
+  const _MobileHeader({required this.partner, required this.l10n});
+  final PartnerInfo? partner;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.bgSecondary,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+          decoration: const BoxDecoration(
+            color: AppColors.bgSecondary,
+            border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.welcomeBack,
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.textTertiary)),
+                        Text(
+                          partner?.partnerName ?? '...',
+                          style: AppTextStyles.headlineSm,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.gear,
+                        size: 20, color: AppColors.textSecondary),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const _CompactFiltersRow(),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Compact filter row: period preset + branch ────────────────────────────────
+class _CompactFiltersRow extends StatelessWidget {
+  const _CompactFiltersRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _PeriodDropdown()),
+        const SizedBox(width: 8),
+        Expanded(child: _MinibranchSelector()),
+      ],
+    );
+  }
+}
+
+class _PeriodDropdown extends StatelessWidget {
+  _PeriodDropdown();
+
+  static const _items = [
+    ('MTD', 'This Month'),
+    ('YTD', 'This Year'),
+    ('LAST', 'Last Month'),
+  ];
+
+  String _label(FilterState s) {
+    final now = DateTime.now();
+    final mtdFrom = DateTime(now.year, now.month, 1);
+    final ytdFrom = DateTime(now.year, 1, 1);
+    final lastEnd = DateTime(now.year, now.month, 1).subtract(const Duration(days: 1));
+    final lastFrom = DateTime(lastEnd.year, lastEnd.month, 1);
+
+    if (s.dateFrom == mtdFrom) return 'MTD';
+    if (s.dateFrom == ytdFrom) return 'YTD';
+    if (s.dateFrom == lastFrom) return 'LAST';
+    return 'Custom';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<FilterCubit>().state;
+    final current = _label(state);
+
+    return _FilterBox(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _items.any((i) => i.$1 == current) ? current : null,
+          hint: Text(
+            current == 'Custom'
+                ? '${state.dateFrom.day}/${state.dateFrom.month} – ${state.dateTo.day}/${state.dateTo.month}'
+                : current,
+            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+            overflow: TextOverflow.ellipsis,
+          ),
+          isExpanded: true,
+          isDense: true,
+          icon: const Icon(CupertinoIcons.chevron_down,
+              size: 13, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+          items: _items
+              .map((i) => DropdownMenuItem(
+                    value: i.$1,
+                    child: Text(i.$2,
+                        style: const TextStyle(fontSize: 12)),
+                  ))
+              .toList(),
+          onChanged: (v) {
+            final cubit = context.read<FilterCubit>();
+            if (v == 'MTD') cubit.setMtd();
+            if (v == 'YTD') cubit.setYtd();
+            if (v == 'LAST') cubit.setLastMonth();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _MinibranchSelector extends StatelessWidget {
+  const _MinibranchSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthCubit>().state;
+    if (auth is! AuthAuthenticated) return const SizedBox.shrink();
+    final options = auth.partner.analyticOptions;
+    if (options.isEmpty) return const SizedBox.shrink();
+    final filter = context.watch<FilterCubit>().state;
+
+    return _FilterBox(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int?>(
+          value: filter.analyticId,
+          isExpanded: true,
+          isDense: true,
+          icon: const Icon(CupertinoIcons.chevron_down,
+              size: 13, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+          hint: const Text('All Branches',
+              style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+              overflow: TextOverflow.ellipsis),
+          items: [
+            const DropdownMenuItem<int?>(
+                value: null,
+                child: Text('All Branches',
+                    style: TextStyle(fontSize: 12))),
+            ...options.map((o) => DropdownMenuItem<int?>(
+                  value: o.id,
+                  child: Text(o.name,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis),
+                )),
+          ],
+          onChanged: (v) => context.read<FilterCubit>().setBranch(v),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterBox extends StatelessWidget {
+  const _FilterBox({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.bgSecondary,
+        border: Border.all(color: AppColors.borderLight),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ─── Simple mobile bottom nav (HTML design) ────────────────────────────────────
+class _MobileBottomNav extends StatelessWidget {
+  const _MobileBottomNav({
+    required this.navItems,
+    required this.moreItems,
+    required this.currentLoc,
+    required this.onLogout,
+    required this.onMore,
+  });
+
+  final List<(String, String, IconData)> navItems;
+  final List<(String, String, IconData)> moreItems;
+  final String currentLoc;
+  final VoidCallback onLogout;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgSecondary,
+        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            children: [
+              ...navItems.map(
+                (e) => _NavBtn(
+                  icon: e.$3,
+                  label: e.$2,
+                  active: currentLoc.startsWith(e.$1),
+                  onTap: () => context.go(e.$1),
+                ),
+              ),
+              if (moreItems.isNotEmpty)
+                _NavBtn(
+                  icon: CupertinoIcons.ellipsis_circle,
+                  label: 'More',
+                  active: moreItems.any((e) => currentLoc.startsWith(e.$1)),
+                  onTap: onMore,
+                ),
+              _NavBtn(
+                icon: CupertinoIcons.square_arrow_left,
+                label: 'Logout',
+                active: false,
+                onTap: onLogout,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavBtn extends StatelessWidget {
+  const _NavBtn({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppColors.primaryMid : AppColors.textTertiary;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight:
+                    active ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -233,41 +469,48 @@ class _Sidebar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       width: inDrawer ? null : AppDimensions.sidebarWidth,
-      decoration: const BoxDecoration(gradient: AppColors.splashGradient),
+      decoration: const BoxDecoration(
+        color: AppColors.bgSecondary,
+        border: Border(right: BorderSide(color: AppColors.borderLight)),
+      ),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimensions.spaceMd,
-                AppDimensions.spaceMd,
-                AppDimensions.spaceMd,
-                AppDimensions.spaceSm,
-              ),
-              child: LiquidGlassCard(
-                borderRadius: AppDimensions.radiusLg,
-                padding: const EdgeInsets.all(AppDimensions.spaceMd),
-                blurSigma: 18,
-                child: Column(
-                  children: [
-                    Text(
-                      l10n.appTitle,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.headlineSm.copyWith(color: AppColors.textOnDark),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    if (partner != null) ...[
-                      const SizedBox(height: AppDimensions.spaceXs),
-                      Text(
-                        partner!.partnerName ?? '',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.caption.copyWith(color: Colors.white70),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
+                    child: const Icon(
+                      CupertinoIcons.chart_bar_alt_fill,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.appTitle, style: AppTextStyles.headlineSm),
+                        if (partner != null)
+                          Text(
+                            partner!.partnerName ?? '',
+                            style: AppTextStyles.caption,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -282,7 +525,7 @@ class _Sidebar extends StatelessWidget {
                       ),
                       child: Text(
                         l10n.navSectionMain,
-                        style: AppTextStyles.kpiLabel.copyWith(color: Colors.white54),
+                        style: AppTextStyles.kpiLabel,
                       ),
                     ),
                   ...navItems.map(
@@ -303,7 +546,7 @@ class _Sidebar extends StatelessWidget {
                       ),
                       child: Text(
                         l10n.navSectionMore,
-                        style: AppTextStyles.kpiLabel.copyWith(color: Colors.white54),
+                        style: AppTextStyles.kpiLabel,
                       ),
                     ),
                     ...moreItems.map(
@@ -379,27 +622,18 @@ class _NavTile extends StatelessWidget {
               Icon(
                 icon,
                 size: 22,
-                color: active ? AppColors.primaryPale : Colors.white60,
+                color: active ? AppColors.primaryMid : AppColors.textMuted,
               ),
               const SizedBox(width: AppDimensions.spaceMd),
               Expanded(
                 child: Text(
                   label,
                   style: AppTextStyles.bodyMd.copyWith(
-                    color: active ? AppColors.textOnDark : Colors.white70,
+                    color: active ? AppColors.primaryMid : AppColors.textSecondary,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
-              if (active)
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryLight,
-                    shape: BoxShape.circle,
-                  ),
-                ),
             ],
           ),
         ),
@@ -416,21 +650,8 @@ class _NavTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppDimensions.spaceXxs),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withValues(alpha: 0.22),
-              Colors.white.withValues(alpha: 0.08),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryDark.withValues(alpha: 0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(10),
+          color: AppColors.primaryPale,
         ),
         child: tile,
       ),

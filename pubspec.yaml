@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.1
+  sdk: '>=3.10.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -37,8 +37,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   permission_handler: ^11.4.0
   device_info_plus: ^11.3.3
-  liquid_glass_widgets:
-    path: liquid_glass_widgets
+  liquid_glass_widgets: ^0.13.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

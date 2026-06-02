@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Your account is not enabled as a financial partner.'**
   String get accessDeniedMessage;
 
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get welcomeBack;
+
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:

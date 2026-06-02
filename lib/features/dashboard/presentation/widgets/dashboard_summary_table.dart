@@ -34,7 +34,7 @@ class DashboardSummaryTable extends StatelessWidget {
         Text('Financial Summary', style: AppTextStyles.headlineSm),
         const SizedBox(height: AppDimensions.spaceSm),
         LiquidGlassCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Table(
             columnWidths: const {
               0: FlexColumnWidth(2),
@@ -52,7 +52,7 @@ class DashboardSummaryTable extends StatelessWidget {
                 'Your Share (${AppFormatters.percent1.format(sharePercentage)}%)',
                 AppFormatters.money(partnerShare),
                 bold: true,
-                valueColor: AppColors.accentGreen,
+                valueColor: AppColors.primaryMid,
                 highlight: true,
               ),
             ],

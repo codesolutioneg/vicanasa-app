@@ -43,8 +43,13 @@ GoRouter createAppRouter(AuthCubit authCubit) {
     redirect: (context, state) {
       final loc = state.matchedLocation;
       final auth = authCubit.state;
-      if (auth is AuthInitial || auth is AuthLoading) {
+      if (auth is AuthInitial) {
         if (loc != AppRoutes.splash) return AppRoutes.splash;
+        return null;
+      }
+      // Stay on login/splash while signing in — do not bounce to splash mid-login.
+      if (auth is AuthLoading) {
+        if (loc == AppRoutes.login || loc == AppRoutes.splash) return null;
         return null;
       }
       if (auth is AuthUnauthenticated) {

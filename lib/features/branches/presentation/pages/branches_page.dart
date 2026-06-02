@@ -58,6 +58,8 @@ class _BranchesPageState extends State<BranchesPage> {
         if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
         final branches = _data!['branch_performance'] as List? ?? [];
         return ListView(
+          primary: false,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
             if (branches.isEmpty) Center(child: Text(l10n.noData)),

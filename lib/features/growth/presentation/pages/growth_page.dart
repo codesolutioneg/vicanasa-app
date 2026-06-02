@@ -63,6 +63,8 @@ class _GrowthPageState extends State<GrowthPage> {
 
           final growth = _data!['growth_data'] as List? ?? [];
           return ListView(
+            primary: false,
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               Row(

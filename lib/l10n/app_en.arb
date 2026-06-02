@@ -19,6 +19,7 @@
   "loginError": "Invalid credentials or access denied",
   "accessDeniedTitle": "Access Denied",
   "accessDeniedMessage": "Your account is not enabled as a financial partner.",
+  "welcomeBack": "Welcome back",
   "logout": "Log out",
   "navDashboard": "Dashboard",
   "navPnl": "P&L",

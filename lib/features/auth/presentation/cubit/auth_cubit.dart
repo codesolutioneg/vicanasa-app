@@ -95,5 +95,13 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthUnauthenticated());
   }
 
-  String _msg(Failure f) => f.message;
+  String _msg(Failure f) {
+    if (f is AuthFailure) {
+      return 'Invalid email or password. Please try again.';
+    }
+    if (f is NetworkFailure) {
+      return 'No connection to the server. Check your internet.';
+    }
+    return f.message;
+  }
 }

@@ -58,6 +58,8 @@ class _CapitalPageState extends State<CapitalPage> {
         if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
         final branches = _data!['branch_capital_data'] as List? ?? [];
         return ListView(
+          primary: false,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
             ListTile(

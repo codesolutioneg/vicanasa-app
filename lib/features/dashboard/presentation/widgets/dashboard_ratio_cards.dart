@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/liquid_glass.dart';
 import '../../../../core/utils/app_formatters.dart';
@@ -15,6 +14,7 @@ class DashboardRatioCards extends StatelessWidget {
     required this.profitMargin,
     required this.partnerMargin,
     required this.sharePercentage,
+    required this.returnOnCapital,
   });
 
   final double expenseRatio;
@@ -23,102 +23,100 @@ class DashboardRatioCards extends StatelessWidget {
   final double profitMargin;
   final double partnerMargin;
   final double sharePercentage;
+  final double returnOnCapital;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Financial Ratios', style: AppTextStyles.headlineSm),
-        const SizedBox(height: AppDimensions.spaceSm),
-        _RatioCard(
-          label: 'EXPENSE TO REVENUE',
-          value: expenseRatio,
-          description: 'Operating expenses as percentage of total revenue',
-          borderColor: _expenseColor(expenseRatio),
-        ),
-        const SizedBox(height: 8),
-        _RatioCard(
-          label: 'COST OF SALES',
-          value: costRatio,
-          description: 'Direct costs (COGS) as percentage of total revenue',
-          borderColor: _costColor(costRatio),
-        ),
-        const SizedBox(height: 8),
-        _RatioCard(
-          label: 'OTHER INCOME',
-          value: otherIncomeRatio,
-          description: 'Other income as percentage of sales',
-          borderColor: AppColors.accentOrange,
-        ),
-        const SizedBox(height: 8),
-        _RatioCard(
-          label: 'COMPANY PROFIT MARGIN',
-          value: profitMargin,
-          description: 'Company net profit as percentage of revenue',
-          borderColor: _profitColor(profitMargin),
-        ),
-        const SizedBox(height: 8),
-        _RatioCard(
-          label: 'YOUR PROFIT MARGIN',
-          value: partnerMargin,
-          description: 'Your share (${AppFormatters.percent2.format(sharePercentage)}%) of revenue',
-          borderColor: AppColors.accentGreen,
-          decimals: 2,
-        ),
-      ],
+    return LiquidGlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Financial Ratios', style: AppTextStyles.headlineSm),
+          const SizedBox(height: 16),
+          _RatioBar(
+            label: 'Profit Margin',
+            value: profitMargin,
+            color: AppColors.accentGreen,
+          ),
+          const SizedBox(height: 14),
+          _RatioBar(
+            label: 'Cost Ratio',
+            value: costRatio,
+            color: AppColors.accentOrange,
+          ),
+          const SizedBox(height: 14),
+          _RatioBar(
+            label: 'Expense Ratio',
+            value: expenseRatio,
+            color: AppColors.accentRed,
+          ),
+          if (otherIncomeRatio > 0) ...[
+            const SizedBox(height: 14),
+            _RatioBar(
+              label: 'Other Income',
+              value: otherIncomeRatio,
+              color: AppColors.accentBlue,
+            ),
+          ],
+          const SizedBox(height: 14),
+          _RatioBar(
+            label: 'Your Margin (${AppFormatters.percent1.format(sharePercentage)}%)',
+            value: partnerMargin,
+            color: AppColors.kpiShare,
+          ),
+          if (returnOnCapital > 0) ...[
+            const SizedBox(height: 14),
+            _RatioBar(
+              label: 'Return on Capital',
+              value: returnOnCapital,
+              color: AppColors.primaryMid,
+            ),
+          ],
+        ],
+      ),
     );
   }
-
-  Color _expenseColor(double v) =>
-      v > 30 ? AppColors.accentRed : (v > 20 ? AppColors.accentOrange : AppColors.accentGreen);
-
-  Color _costColor(double v) =>
-      v > 70 ? AppColors.accentRed : (v > 50 ? AppColors.accentOrange : AppColors.accentGreen);
-
-  Color _profitColor(double v) =>
-      v > 15 ? AppColors.accentGreen : (v > 5 ? AppColors.accentOrange : AppColors.accentRed);
 }
 
-class _RatioCard extends StatelessWidget {
-  const _RatioCard({
+class _RatioBar extends StatelessWidget {
+  const _RatioBar({
     required this.label,
     required this.value,
-    required this.description,
-    required this.borderColor,
-    this.decimals = 1,
+    required this.color,
   });
 
   final String label;
   final double value;
-  final String description;
-  final Color borderColor;
-  final int decimals;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final fmt = decimals == 2 ? AppFormatters.percent2 : AppFormatters.percent1;
-    return LiquidGlassCard(
-      padding: const EdgeInsets.all(14),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: borderColor, width: 4)),
-        ),
-        padding: const EdgeInsets.only(left: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final clamped = value.clamp(0.0, 100.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: AppTextStyles.kpiLabel),
-            const SizedBox(height: 4),
+            Text(label, style: AppTextStyles.caption.copyWith(fontSize: 12)),
             Text(
-              '${fmt.format(value)}%',
-              style: AppTextStyles.kpiValue.copyWith(color: borderColor, fontSize: 22),
+              '${AppFormatters.percent1.format(value)}%',
+              style: AppTextStyles.captionBold.copyWith(color: color),
             ),
-            const SizedBox(height: 4),
-            Text(description, style: AppTextStyles.caption),
           ],
         ),
-      ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: clamped / 100,
+            minHeight: 8,
+            backgroundColor: AppColors.bgTertiary,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -70,6 +70,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account is not enabled as a financial partner.';
 
   @override
+  String get welcomeBack => 'Welcome back';
+
+  @override
   String get logout => 'Log out';
 
   @override

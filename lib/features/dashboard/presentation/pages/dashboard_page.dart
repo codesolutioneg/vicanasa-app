@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -11,11 +10,12 @@ import '../../../../core/widgets/month_closing_banner.dart';
 import '../../domain/dashboard_metrics.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/dashboard_balance_cards.dart';
+import '../widgets/dashboard_breakdown_list.dart';
 import '../widgets/dashboard_charts_section.dart';
 import '../widgets/dashboard_grouped_sheet.dart';
+import '../widgets/dashboard_hero_card.dart';
 import '../widgets/dashboard_main_kpis.dart';
 import '../widgets/dashboard_ratio_cards.dart';
-import '../widgets/dashboard_summary_table.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -55,22 +55,32 @@ class _DashboardPageState extends State<DashboardPage> {
     return raw.map((e) => (e as num).toInt()).toList();
   }
 
+  double _returnOnCapital(double netProfit, double capital) {
+    if (capital <= 0) return 0;
+    return (netProfit / capital * 100).clamp(0, 100);
+  }
+
+  Widget _sectionTitle(String text) => Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Text(text, style: AppTextStyles.headlineSm),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat.yMMMd();
     return BlocListener<FilterCubit, FilterState>(
       listener: (_, __) => _load(),
       child: BlocBuilder<DashboardCubit, DashboardState>(
         bloc: _cubit,
         builder: (context, state) {
           if (state is DashboardLoading || state is DashboardInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryMid),
+            );
           }
           if (state is DashboardError) {
             return ErrorRetry(message: state.message, onRetry: _load);
           }
           final data = (state as DashboardLoaded).data;
-          final filter = context.read<FilterCubit>().state;
           final level = data['analysis_level'] as String? ?? 'none';
           final capped = data['data_capped'] == true;
           final revenueGrouped = _groups(data['revenue_grouped']);
@@ -80,37 +90,52 @@ class _DashboardPageState extends State<DashboardPage> {
           final monthly = _groups(data['monthly_data']);
           final ratios = DashboardMetrics.ratios(data);
           final profitDist = DashboardMetrics.profitDistribution(data);
+          final revenue = _n(data['revenue']);
+          final cost = _n(data['cost']);
+          final expense = _n(data['expense']);
+          final netProfit = _n(data['net_profit']);
+          final capital = _n(data['capital_balance']);
 
           return RefreshIndicator(
+            color: AppColors.primaryMid,
             onRefresh: () async => _load(),
             child: ListView(
+              primary: false,
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                Text('Financial Dashboard', style: AppTextStyles.headlineLg),
-                const SizedBox(height: 4),
-                Text(
-                  '${fmt.format(filter.dateFrom)} → ${fmt.format(filter.dateTo)}',
-                  style: AppTextStyles.caption,
-                ),
-                const SizedBox(height: AppDimensions.spaceMd),
                 if (capped && data['closed_display_text'] != null)
-                  MonthClosingBanner(period: '${data['closed_display_text']}'),
-                DashboardMainKpis(
-                  revenue: _n(data['revenue']),
-                  cost: _n(data['cost']),
-                  expense: _n(data['expense']),
-                  netProfit: _n(data['net_profit']),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppDimensions.spaceMd),
+                    child: MonthClosingBanner(period: '${data['closed_display_text']}'),
+                  ),
+                DashboardHeroCard(
+                  netProfit: netProfit,
+                  revenue: revenue,
                   partnerShare: _n(data['partner_share']),
-                  revenueGrouped: revenueGrouped,
+                  sharePercentage: _n(data['share_percentage']),
+                  isLoss: profitDist.isLoss,
+                ),
+                const SizedBox(height: AppDimensions.spaceLg),
+                _sectionTitle('Overview'),
+                const SizedBox(height: AppDimensions.spaceSm),
+                DashboardMainKpis(
+                  revenue: revenue,
+                  cost: cost,
+                  expense: expense,
+                  netProfit: netProfit,
+                  partnerShare: _n(data['partner_share']),
+                  capitalBalance: capital,
+                  sharePercentage: _n(data['share_percentage']),
                   onRevenueTap: level != 'none'
                       ? () => showDashboardGroupedSheet(
                             context,
                             title: 'Revenue Analysis',
-                            headerColor: AppColors.accentGreen,
+                            headerColor: AppColors.kpiRevenue,
                             groups: revenueGrouped,
                             analysisLevel: level,
                             allowedGroupIds: allowedIds,
-                            grandTotal: _n(data['revenue']),
+                            grandTotal: revenue,
                             grandLabel: 'Total Revenue',
                           )
                       : null,
@@ -119,8 +144,8 @@ class _DashboardPageState extends State<DashboardPage> {
                             context,
                             costGrouped: costGrouped,
                             expenseGrouped: expenseGrouped,
-                            costTotal: _n(data['cost']),
-                            expenseTotal: _n(data['expense']),
+                            costTotal: cost,
+                            expenseTotal: expense,
                             analysisLevel: level,
                             allowedGroupIds: allowedIds,
                           )
@@ -128,19 +153,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: AppDimensions.spaceMd),
                 DashboardBalanceCards(
-                  capitalBalance: _n(data['capital_balance']),
                   distributionBalance: _n(data['distribution_balance']),
                 ),
                 const SizedBox(height: AppDimensions.spaceLg),
-                DashboardRatioCards(
-                  expenseRatio: ratios.expenseRatio,
-                  costRatio: ratios.costRatio,
-                  otherIncomeRatio: ratios.otherIncomeRatio,
-                  profitMargin: ratios.profitMargin,
-                  partnerMargin: ratios.partnerMargin,
-                  sharePercentage: _n(data['share_percentage']),
-                ),
-                const SizedBox(height: AppDimensions.spaceLg),
+                _sectionTitle('Trends'),
+                const SizedBox(height: AppDimensions.spaceSm),
                 DashboardChartsSection(
                   monthlyList: monthly,
                   yourShare: profitDist.yourShare,
@@ -149,14 +166,43 @@ class _DashboardPageState extends State<DashboardPage> {
                   isLoss: profitDist.isLoss,
                 ),
                 const SizedBox(height: AppDimensions.spaceLg),
-                DashboardSummaryTable(
-                  revenue: _n(data['revenue']),
-                  cost: _n(data['cost']),
-                  grossProfit: _n(data['gross_profit']),
-                  expense: _n(data['expense']),
-                  netProfit: _n(data['net_profit']),
-                  partnerShare: _n(data['partner_share']),
-                  sharePercentage: _n(data['share_percentage']),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 900;
+                    final breakdown = DashboardBreakdownList(
+                      revenue: revenue,
+                      cost: cost,
+                      grossProfit: _n(data['gross_profit']),
+                      expense: expense,
+                      netProfit: netProfit,
+                    );
+                    final ratiosCard = DashboardRatioCards(
+                      expenseRatio: ratios.expenseRatio,
+                      costRatio: ratios.costRatio,
+                      otherIncomeRatio: ratios.otherIncomeRatio,
+                      profitMargin: ratios.profitMargin,
+                      partnerMargin: ratios.partnerMargin,
+                      sharePercentage: _n(data['share_percentage']),
+                      returnOnCapital: _returnOnCapital(netProfit, capital),
+                    );
+                    if (wide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 3, child: breakdown),
+                          const SizedBox(width: AppDimensions.spaceMd),
+                          Expanded(flex: 2, child: ratiosCard),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        breakdown,
+                        const SizedBox(height: AppDimensions.spaceMd),
+                        ratiosCard,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
               ],

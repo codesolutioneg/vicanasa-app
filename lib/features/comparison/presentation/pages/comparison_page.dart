@@ -68,6 +68,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
     final available = (_data!['available_years'] as List?)?.cast<int>() ?? [];
 
     return ListView(
+      primary: false,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppDimensions.spaceMd),
       children: [
         LiquidGlassCard(
