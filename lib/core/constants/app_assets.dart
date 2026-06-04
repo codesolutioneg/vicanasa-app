@@ -4,4 +4,5 @@ abstract final class AppAssets {
       'assets/images/splash_center_logo_background_white.png';
   static const String splashLogo = appIcon;
   static const String brandLogo = 'assets/images/vicanza_logo.png';
+  static const String codeSolutionLogo = 'assets/images/code_solution_logo.png';
 }

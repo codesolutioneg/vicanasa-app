@@ -5,6 +5,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../core/widgets/month_closing_banner.dart';
 import '../../domain/dashboard_metrics.dart';
@@ -73,9 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
         bloc: _cubit,
         builder: (context, state) {
           if (state is DashboardLoading || state is DashboardInitial) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryMid),
-            );
+            return const DashboardPageShimmer();
           }
           if (state is DashboardError) {
             return ErrorRetry(message: state.message, onRetry: _load);

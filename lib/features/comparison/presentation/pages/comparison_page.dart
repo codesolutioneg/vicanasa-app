@@ -8,6 +8,7 @@ import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/liquid_glass.dart';
 import '../../../../core/utils/app_formatters.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
@@ -61,7 +62,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const ComparisonPageShimmer();
     if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
 
     final rows = _data!['comparison_data'] as List? ?? [];

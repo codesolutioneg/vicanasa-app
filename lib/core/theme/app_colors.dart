@@ -41,6 +41,12 @@ abstract final class AppColors {
   static const Color border = Color(0xFFD1D5DB);
   static const Color borderLight = Color(0xFFE5E7EB);
 
+  // Shimmer — white base + light blue sweep
+  static const Color shimmerBase = Color(0xFFFFFFFF);
+  static const Color shimmerHighlight = Color(0xFFBFDBFE);
+  /// Inner placeholder blocks on white cards
+  static const Color shimmerFill = Color(0xFFEFF6FF);
+
   // Dashboard KPI semantic
   static const Color kpiRevenue = Color(0xFF2563EB);
   static const Color kpiCost = Color(0xFFF59E0B);

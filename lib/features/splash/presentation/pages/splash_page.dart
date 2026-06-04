@@ -9,6 +9,7 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/powered_by_code_solution.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
@@ -22,7 +23,8 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  static const Duration _animationDuration = Duration(seconds: 3);
+  static const Duration _splashHold = Duration(seconds: 3);
+  static const Duration _animationDuration = _splashHold;
 
   late final AnimationController _controller;
   late final Animation<double> _phase1Fade;
@@ -75,7 +77,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       if (mounted) unawaited(_boot());
     });
 
-    _failsafeTimer = Timer(const Duration(seconds: 12), () {
+    _failsafeTimer = Timer(_splashHold, () {
       if (!mounted || _navigated) return;
       _navigateFromAuth(force: true);
     });
@@ -159,80 +161,93 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             gradient: AppColors.splashBackgroundGradient,
           ),
           child: SafeArea(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                final shift = _phase2ShiftUp.value;
-                final maxRadius = sqrt(
-                  size.width * size.width + size.height * size.height,
-                );
-                const baseRadius = ellipseW / 2;
-                final expandedRadius = baseRadius +
-                    (maxRadius - baseRadius) * _phase3Expand.value;
+            child: Column(
+              children: [
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      final shift = _phase2ShiftUp.value;
+                      final maxRadius = sqrt(
+                        size.width * size.width + size.height * size.height,
+                      );
+                      const baseRadius = ellipseW / 2;
+                      final expandedRadius = baseRadius +
+                          (maxRadius - baseRadius) * _phase3Expand.value;
 
-                return Stack(
-                  children: [
-                    if (_phase3Expand.value > 0)
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _ExpandingCirclePainter(
-                            center: Offset(size.width / 2, centerY + shift),
-                            radius: expandedRadius,
-                            color: AppColors.splashExpandFill,
-                          ),
-                        ),
-                      ),
+                      return Stack(
+                        children: [
+                          if (_phase3Expand.value > 0)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _ExpandingCirclePainter(
+                                  center:
+                                      Offset(size.width / 2, centerY + shift),
+                                  radius: expandedRadius,
+                                  color: AppColors.splashExpandFill,
+                                ),
+                              ),
+                            ),
 
-                    Opacity(
-                      opacity: _phase1Fade.value,
-                      child: Transform.translate(
-                        offset: Offset(0, shift),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Positioned(
-                              left: (size.width - ellipseW) / 2,
-                              top: centerY - ellipseH / 2,
-                              child: Container(
-                                width: ellipseW,
-                                height: ellipseH,
-                                decoration: BoxDecoration(
-                                  color: AppColors.splashCircleFill,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black
-                                          .withValues(alpha: 0.15),
-                                      blurRadius: 28,
-                                      offset: const Offset(0, 10),
+                          Opacity(
+                            opacity: _phase1Fade.value,
+                            child: Transform.translate(
+                              offset: Offset(0, shift),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Positioned(
+                                    left: (size.width - ellipseW) / 2,
+                                    top: centerY - ellipseH / 2,
+                                    child: Container(
+                                      width: ellipseW,
+                                      height: ellipseH,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.splashCircleFill,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: centerY - ellipseH / 2,
-                              left: 0,
-                              right: 0,
-                              child: SizedBox(
-                                height: ellipseH,
-                                child: Center(
-                                  child: Image.asset(
-                                    AppAssets.appIcon,
-                                    width: 150,
-                                    height: 150,
-                                    fit: BoxFit.contain,
                                   ),
-                                ),
+                                  Positioned(
+                                    top: centerY - ellipseH / 2,
+                                    left: 0,
+                                    right: 0,
+                                    child: SizedBox(
+                                      height: ellipseH,
+                                      child: Center(
+                                        child: Image.asset(
+                                          AppAssets.appIcon,
+                                          width: 150,
+                                          height: 150,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _phase1Fade.value,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Center(
+                          child: const PoweredByCodeSolution(compact: true),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/bilingual_display.dart';
 import '../../domain/closed_month_option.dart';
 
 /// Bottom sheet to pick one or more closed months only.
@@ -79,7 +80,10 @@ class _ClosedMonthsPickerBodyState extends State<_ClosedMonthsPickerBody> {
                 final m = widget.closedMonths[index];
                 return CheckboxListTile(
                   value: _selected.contains(m.key),
-                  title: Text(m.name, style: const TextStyle(fontSize: 14)),
+                  title: BilingualDisplay.monthLabel(
+                    m.name,
+                    style: const TextStyle(fontSize: 14),
+                  ),
                   dense: true,
                   onChanged: (checked) {
                     setState(() {

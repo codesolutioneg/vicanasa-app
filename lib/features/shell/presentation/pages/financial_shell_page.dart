@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/bilingual_display.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -133,23 +134,13 @@ class _Header extends StatelessWidget {
         color: AppColors.bgSecondary,
         border: Border(bottom: BorderSide(color: AppColors.borderLight)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.welcomeBack, style: AppTextStyles.caption),
-                Text(
-                  partner!.partnerName ?? '',
-                  style: AppTextStyles.headlineSm,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(CupertinoIcons.gear, color: AppColors.textSecondary),
+          Text(l10n.welcomeBack, style: AppTextStyles.caption),
+          Text(
+            partner!.partnerName ?? '',
+            style: AppTextStyles.headlineSm,
           ),
         ],
       ),
@@ -178,28 +169,17 @@ class _MobileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.welcomeBack,
-                            style: AppTextStyles.caption
-                                .copyWith(color: AppColors.textTertiary)),
-                        Text(
-                          partner?.partnerName ?? '...',
-                          style: AppTextStyles.headlineSm,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(CupertinoIcons.gear,
-                        size: 20, color: AppColors.textSecondary),
-                    onPressed: () {},
+                  Text(l10n.welcomeBack,
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.textTertiary)),
+                  Text(
+                    partner?.partnerName ?? '...',
+                    style: AppTextStyles.headlineSm,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -240,7 +220,7 @@ class _PeriodDropdown extends StatelessWidget {
     }
     if (s.closedMonths.isNotEmpty) {
       for (final m in s.closedMonths) {
-        if (m.key == s.periodPreset) return m.name;
+        if (m.key == s.periodPreset) return BilingualDisplay.swapMonthLabel(m.name);
       }
     }
     return '${s.dateFrom.month}/${s.dateFrom.year} – ${s.dateTo.month}/${s.dateTo.year}';
@@ -325,7 +305,10 @@ class _PeriodDropdown extends StatelessWidget {
             ...state.closedMonths.map(
               (ClosedMonthOption m) => DropdownMenuItem(
                 value: m.key,
-                child: Text(m.name, style: const TextStyle(fontSize: 12)),
+                child: BilingualDisplay.monthLabel(
+                  m.name,
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
@@ -57,7 +58,7 @@ class _DistributionsPageState extends State<DistributionsPage> {
     return BlocListener<FilterCubit, FilterState>(
       listener: (_, __) => _load(),
       child: Builder(builder: (context) {
-        if (_loading) return const Center(child: CircularProgressIndicator());
+        if (_loading) return const DistributionsPageShimmer();
         if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
         final quarterly = _data!['quarterly_data'] as List? ?? [];
         final byBranch = _data!['distribution_by_branch'] as List? ?? [];

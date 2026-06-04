@@ -7,6 +7,8 @@ import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/liquid_glass.dart';
 import '../../../../core/utils/app_formatters.dart';
+import '../../../../core/utils/bilingual_display.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../core/widgets/kpi_card.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -65,7 +67,7 @@ class _PnlPageState extends State<PnlPage> {
   }
 
   Widget _buildBody(AppLocalizations l10n) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const PnlPageShimmer();
     if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
     final pnl = Map<String, dynamic>.from(_data!['pnl_data'] as Map? ?? {});
     final years = (_data!['available_years'] as List?)?.cast<int>() ?? [_year];
@@ -211,21 +213,13 @@ class _AccountSection extends StatelessWidget {
               final amount = (m['amount'] as num?)?.toDouble() ?? 0;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppDimensions.spaceXs),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${m['code']} ${m['name']}',
-                        style: AppTextStyles.bodySm,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      AppFormatters.money(amount),
-                      style: AppTextStyles.financial.copyWith(color: accent),
-                    ),
-                  ],
+                child: BilingualDisplay.accountAmountRow(
+                  code: '${m['code'] ?? ''}',
+                  name: '${m['name'] ?? ''}',
+                  amountText: AppFormatters.money(amount),
+                  codeStyle: AppTextStyles.bodySm,
+                  nameStyle: AppTextStyles.bodySm,
+                  amountStyle: AppTextStyles.financial.copyWith(color: accent),
                 ),
               );
             }),

@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_fonts.dart';
 
 abstract final class AppTextStyles {
   AppTextStyles._();
+
+  /// Applies Tajawal when [locale] is Arabic; otherwise unchanged (DM Sans from theme).
+  static TextStyle localized(TextStyle style, Locale locale) {
+    if (!AppFonts.isArabic(locale)) return style;
+    return style.copyWith(fontFamily: AppFonts.tajawal, letterSpacing: 0);
+  }
 
   static const TextStyle displayLg = TextStyle(
     fontSize: 34,

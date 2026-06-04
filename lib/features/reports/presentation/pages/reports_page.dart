@@ -6,6 +6,7 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/theme/liquid_glass.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
@@ -124,17 +125,14 @@ class _ReportsPageState extends State<ReportsPage> {
                 ],
               ),
               const SizedBox(height: AppDimensions.spaceLg),
-              FilledButton.icon(
-                onPressed: _busy ? null : _exportFinancialPdf,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(CupertinoIcons.arrow_down_doc_fill),
-                label: Text(l10n.reportsExportPdf),
-              ),
+              if (_busy)
+                const ShimmerButton(height: 48)
+              else
+                FilledButton.icon(
+                  onPressed: _exportFinancialPdf,
+                  icon: const Icon(CupertinoIcons.arrow_down_doc_fill),
+                  label: Text(l10n.reportsExportPdf),
+                ),
             ],
           ),
         ),

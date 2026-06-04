@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
@@ -54,7 +55,7 @@ class _BranchesPageState extends State<BranchesPage> {
     return BlocListener<FilterCubit, FilterState>(
       listener: (_, __) => _load(),
       child: Builder(builder: (context) {
-        if (_loading) return const Center(child: CircularProgressIndicator());
+        if (_loading) return const ListPageShimmer(showHeader: false);
         if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
         final branches = _data!['branch_performance'] as List? ?? [];
         return ListView(

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../shimmer/shimmer.dart';
 import '../theme/app_dimensions.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/liquid_glass.dart';
@@ -59,13 +60,22 @@ class NoInternetScreen extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: isRetrying ? null : onRetry,
                           icon: isRetrying
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CupertinoActivityIndicator(color: Colors.white),
-                                )
+                              ? const SizedBox.shrink()
                               : const Icon(CupertinoIcons.arrow_clockwise),
-                          label: Text(l10n.retry),
+                          label: isRetrying
+                              ? CustomShimmer(
+                                  baseColor: Colors.white.withValues(alpha: 0.25),
+                                  highlightColor: Colors.white.withValues(alpha: 0.45),
+                                  child: Container(
+                                    height: 14,
+                                    width: 64,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.25),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                )
+                              : Text(l10n.retry),
                         ),
                       ),
                     ],

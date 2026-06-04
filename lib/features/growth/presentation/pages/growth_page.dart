@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../core/theme/liquid_glass.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -58,7 +59,7 @@ class _GrowthPageState extends State<GrowthPage> {
       listener: (_, __) => _load(),
       child: Builder(
         builder: (context) {
-          if (_loading) return const Center(child: CircularProgressIndicator());
+          if (_loading) return const GrowthPageShimmer();
           if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
 
           final growth = _data!['growth_data'] as List? ?? [];

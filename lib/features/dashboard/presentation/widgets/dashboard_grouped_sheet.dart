@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_formatters.dart';
+import '../../../../core/utils/bilingual_display.dart';
 import '../../../account_details/presentation/account_details_sheet.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
 
@@ -130,13 +131,14 @@ class _GroupBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
-            title: Text(
-              '${group['group_code'] ?? ''} ${group['group_name'] ?? ''}'.trim(),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            trailing: Text(
-              AppFormatters.money(total),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            title: BilingualDisplay.accountAmountRow(
+              code: '${group['group_code'] ?? ''}',
+              name: '${group['group_name'] ?? ''}',
+              amountText: AppFormatters.money(total),
+              codeStyle: const TextStyle(fontWeight: FontWeight.w600),
+              nameStyle: const TextStyle(fontWeight: FontWeight.w600),
+              amountStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           if (canSeeDetails && accounts.isNotEmpty)
@@ -144,8 +146,14 @@ class _GroupBlock extends StatelessWidget {
               final acc = Map<String, dynamic>.from(a as Map);
               return ListTile(
                 dense: true,
-                title: Text('${acc['code']} ${acc['name']}'),
-                trailing: Text(AppFormatters.money((acc['amount'] as num?)?.toDouble() ?? 0)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                title: BilingualDisplay.accountAmountRow(
+                  code: '${acc['code'] ?? ''}',
+                  name: '${acc['name'] ?? ''}',
+                  amountText: AppFormatters.money(
+                    (acc['amount'] as num?)?.toDouble() ?? 0,
+                  ),
+                ),
                 onTap: acc['account_id'] != null
                     ? () {
                         Navigator.pop(context);

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/app_fonts.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/connectivity_gate.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
@@ -44,7 +45,7 @@ class _VacansaAppState extends State<VacansaApp> {
       ],
       child: MaterialApp.router(
         title: 'Vicanza',
-        theme: AppTheme.light(),
+        theme: AppTheme.forLocale(const Locale('en')),
         routerConfig: _router,
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
@@ -54,9 +55,29 @@ class _VacansaAppState extends State<VacansaApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        builder: (context, child) => ConnectivityGate(
-          child: child ?? const SizedBox.shrink(),
-        ),
+        localeResolutionCallback: (locale, supported) {
+          if (locale == null) return const Locale('en');
+          for (final s in supported) {
+            if (s.languageCode == locale.languageCode) return s;
+          }
+          return const Locale('en');
+        },
+        builder: (context, child) {
+          final locale = Localizations.localeOf(context);
+          final themed = Theme(
+            data: AppTheme.forLocale(locale),
+            child: child ?? const SizedBox.shrink(),
+          );
+          if (!AppFonts.isArabic(locale)) {
+            return ConnectivityGate(child: themed);
+          }
+          return ConnectivityGate(
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(fontFamily: AppFonts.tajawal),
+              child: themed,
+            ),
+          );
+        },
       ),
     );
   }

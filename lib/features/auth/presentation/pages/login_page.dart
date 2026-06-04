@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/powered_by_code_solution.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
@@ -42,7 +44,19 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Directionality(
           textDirection: TextDirection.ltr,
-          child: wide ? _buildSplitLayout() : _buildStackedLayout(),
+          child: Column(
+            children: [
+              Expanded(
+                child: wide ? _buildSplitLayout() : _buildStackedLayout(),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Center(
+                  child: PoweredByCodeSolution(compact: true),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -180,11 +194,17 @@ class _LoginPageState extends State<LoginPage> {
                                   .login(email, password);
                             },
                       child: loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CupertinoActivityIndicator(
-                                  color: Colors.white),
+                          ? CustomShimmer(
+                              baseColor: Colors.white.withValues(alpha: 0.25),
+                              highlightColor: Colors.white.withValues(alpha: 0.45),
+                              child: Container(
+                                height: 16,
+                                width: 120,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
                             )
                           : Text(l10n.loginButton),
                     ),
@@ -308,11 +328,16 @@ class _LoginPageState extends State<LoginPage> {
                               context.read<AuthCubit>().login(email, password);
                             },
                       child: loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CupertinoActivityIndicator(
-                                color: Colors.white,
+                          ? CustomShimmer(
+                              baseColor: Colors.white.withValues(alpha: 0.25),
+                              highlightColor: Colors.white.withValues(alpha: 0.45),
+                              child: Container(
+                                height: 16,
+                                width: 120,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             )
                           : Text(l10n.loginButton),
