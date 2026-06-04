@@ -26,14 +26,18 @@ class _DateFilterBarState extends State<DateFilterBar> {
   }
 
   Future<void> _pickDate(bool isFrom) async {
-    final initial = isFrom ? _draftFrom : _draftTo;
+    final filter = context.read<FilterCubit>().state;
+    final lastDate = filter.maxSelectableDate;
+    var initial = isFrom ? _draftFrom : _draftTo;
+    if (initial.isAfter(lastDate)) initial = lastDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: lastDate,
     );
     if (picked == null) return;
+    if (!filter.isMonthSelectable(picked.year, picked.month)) return;
     setState(() {
       if (isFrom) {
         _draftFrom = picked;
@@ -42,6 +46,8 @@ class _DateFilterBarState extends State<DateFilterBar> {
         _draftTo = picked;
         if (_draftFrom.isAfter(_draftTo)) _draftFrom = _draftTo;
       }
+      if (_draftTo.isAfter(lastDate)) _draftTo = lastDate;
+      if (_draftFrom.isAfter(lastDate)) _draftFrom = lastDate;
     });
   }
 

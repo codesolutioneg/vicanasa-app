@@ -10,8 +10,10 @@ import '../../../../core/theme/liquid_glass.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../financial/domain/entities/partner_info.dart';
+import '../../domain/closed_month_option.dart';
 import '../cubit/filter_cubit.dart';
 import '../widgets/branch_selector.dart';
+import '../widgets/closed_months_picker_sheet.dart';
 import '../widgets/date_filter_bar.dart';
 
 class FinancialShellPage extends StatefulWidget {
@@ -220,7 +222,7 @@ class _CompactFiltersRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _PeriodDropdown()),
+        const Expanded(child: _PeriodDropdown()),
         const SizedBox(width: 8),
         Expanded(child: _MinibranchSelector()),
       ],
@@ -229,40 +231,80 @@ class _CompactFiltersRow extends StatelessWidget {
 }
 
 class _PeriodDropdown extends StatelessWidget {
-  _PeriodDropdown();
+  const _PeriodDropdown();
 
-  static const _items = [
-    ('MTD', 'This Month'),
-    ('YTD', 'This Year'),
-    ('LAST', 'Last Month'),
-  ];
+  String _displayLabel(FilterState s) {
+    if (s.periodPreset == 'YTD') return 'This Year';
+    if (s.periodPreset == 'MULTI' && s.selectedMonthKeys.length > 1) {
+      return '${s.selectedMonthKeys.length} months';
+    }
+    if (s.closedMonths.isNotEmpty) {
+      for (final m in s.closedMonths) {
+        if (m.key == s.periodPreset) return m.name;
+      }
+    }
+    return '${s.dateFrom.month}/${s.dateFrom.year} – ${s.dateTo.month}/${s.dateTo.year}';
+  }
 
-  String _label(FilterState s) {
-    final now = DateTime.now();
-    final mtdFrom = DateTime(now.year, now.month, 1);
-    final ytdFrom = DateTime(now.year, 1, 1);
-    final lastEnd = DateTime(now.year, now.month, 1).subtract(const Duration(days: 1));
-    final lastFrom = DateTime(lastEnd.year, lastEnd.month, 1);
-
-    if (s.dateFrom == mtdFrom) return 'MTD';
-    if (s.dateFrom == ytdFrom) return 'YTD';
-    if (s.dateFrom == lastFrom) return 'LAST';
-    return 'Custom';
+  Future<void> _openMultiPicker(BuildContext context, FilterState state) async {
+    final picked = await showClosedMonthsPickerSheet(
+      context: context,
+      closedMonths: state.closedMonths,
+      initialSelectedKeys: state.selectedMonthKeys,
+    );
+    if (picked == null || picked.isEmpty || !context.mounted) return;
+    context.read<FilterCubit>().setClosedMonths(picked);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FilterCubit>().state;
-    final current = _label(state);
+    final cubit = context.read<FilterCubit>();
+    final hasClosed = state.closedMonths.isNotEmpty;
+    final display = _displayLabel(state);
+
+    if (!hasClosed) {
+      return _FilterBox(
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: state.periodPreset == 'MTD' ||
+                    state.periodPreset == 'YTD' ||
+                    state.periodPreset == 'LAST'
+                ? state.periodPreset
+                : null,
+            hint: Text(
+              display,
+              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+              overflow: TextOverflow.ellipsis,
+            ),
+            isExpanded: true,
+            isDense: true,
+            icon: const Icon(CupertinoIcons.chevron_down,
+                size: 13, color: AppColors.textSecondary),
+            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+            items: const [
+              DropdownMenuItem(value: 'YTD', child: Text('This Year', style: TextStyle(fontSize: 12))),
+              DropdownMenuItem(value: 'MTD', child: Text('This Month', style: TextStyle(fontSize: 12))),
+              DropdownMenuItem(value: 'LAST', child: Text('Last Month', style: TextStyle(fontSize: 12))),
+            ],
+            onChanged: (v) {
+              if (v == 'MTD') cubit.setMtd();
+              if (v == 'YTD') cubit.setYtd();
+              if (v == 'LAST') cubit.setLastMonth();
+            },
+          ),
+        ),
+      );
+    }
+
+    final menuKeys = <String>['YTD', 'MULTI', ...state.closedMonths.map((m) => m.key)];
 
     return _FilterBox(
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _items.any((i) => i.$1 == current) ? current : null,
+          value: menuKeys.contains(state.periodPreset) ? state.periodPreset : null,
           hint: Text(
-            current == 'Custom'
-                ? '${state.dateFrom.day}/${state.dateFrom.month} – ${state.dateTo.day}/${state.dateTo.month}'
-                : current,
+            display,
             style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
@@ -271,18 +313,38 @@ class _PeriodDropdown extends StatelessWidget {
           icon: const Icon(CupertinoIcons.chevron_down,
               size: 13, color: AppColors.textSecondary),
           style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-          items: _items
-              .map((i) => DropdownMenuItem(
-                    value: i.$1,
-                    child: Text(i.$2,
-                        style: const TextStyle(fontSize: 12)),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            final cubit = context.read<FilterCubit>();
-            if (v == 'MTD') cubit.setMtd();
-            if (v == 'YTD') cubit.setYtd();
-            if (v == 'LAST') cubit.setLastMonth();
+          items: [
+            const DropdownMenuItem(
+              value: 'YTD',
+              child: Text('This Year', style: TextStyle(fontSize: 12)),
+            ),
+            const DropdownMenuItem(
+              value: 'MULTI',
+              child: Text('Select months…', style: TextStyle(fontSize: 12)),
+            ),
+            ...state.closedMonths.map(
+              (ClosedMonthOption m) => DropdownMenuItem(
+                value: m.key,
+                child: Text(m.name, style: const TextStyle(fontSize: 12)),
+              ),
+            ),
+          ],
+          onChanged: (v) async {
+            if (v == null) return;
+            if (v == 'YTD') {
+              cubit.setYtd();
+              return;
+            }
+            if (v == 'MULTI') {
+              await _openMultiPicker(context, state);
+              return;
+            }
+            for (final m in state.closedMonths) {
+              if (m.key == v) {
+                cubit.setClosedMonth(m);
+                break;
+              }
+            }
           },
         ),
       ),
