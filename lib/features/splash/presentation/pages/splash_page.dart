@@ -62,32 +62,30 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        alignment: Alignment.center,
         children: [
-          // Large transparent "V" on the right — decorative background element
-          Positioned(
-            right: -size.width * 0.18,
-            top: 0,
-            bottom: 0,
+          // Giant "V" filling the whole screen as a faint background watermark
+          Positioned.fill(
             child: Center(
-              child: Text(
-                'V',
-                style: TextStyle(
-                  fontFamily: 'Georgia',
-                  fontSize: size.width * 1.05,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryMid.withValues(alpha: 0.045),
-                  height: 1,
-                  letterSpacing: -8,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: Text(
+                  'V',
+                  style: TextStyle(
+                    fontFamily: 'Georgia',
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryMid.withValues(alpha: 0.07),
+                    height: 1,
+                  ),
                 ),
               ),
             ),
           ),
 
-          // Main content
+          // VICANZA wordmark — clearly visible on top of the background "V"
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -96,7 +94,7 @@ class _SplashPageState extends State<SplashPage> {
                 Center(
                   child: Image.asset(
                     AppAssets.splashLogo,
-                    height: 140,
+                    height: 150,
                     fit: BoxFit.contain,
                   ),
                 ),
