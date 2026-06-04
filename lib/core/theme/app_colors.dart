@@ -67,6 +67,17 @@ abstract final class AppColors {
     colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
   );
 
+  /// Splash animation — light blue canvas, white circle + expand
+  static const Color splashSurface = Color(0xFFEFF6FF);
+  static const Color splashCircleFill = bgSecondary;
+  static const Color splashExpandFill = bgSecondary;
+
+  static const LinearGradient splashBackgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+  );
+
   static const LinearGradient glassGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

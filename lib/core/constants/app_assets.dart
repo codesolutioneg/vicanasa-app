@@ -1,4 +1,7 @@
 abstract final class AppAssets {
-  static const String splashLogo =
+  /// App icon with white background (splash + branding)
+  static const String appIcon =
       'assets/images/splash_center_logo_background_white.png';
+  static const String splashLogo = appIcon;
+  static const String brandLogo = 'assets/images/vicanza_logo.png';
 }

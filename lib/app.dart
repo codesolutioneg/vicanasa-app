@@ -46,6 +46,7 @@ class _VacansaAppState extends State<VacansaApp> {
         title: 'Vicanza',
         theme: AppTheme.light(),
         routerConfig: _router,
+        debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
