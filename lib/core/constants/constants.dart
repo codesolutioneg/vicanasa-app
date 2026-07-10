@@ -13,5 +13,5 @@ abstract final class AppConstants {
 
   static const String androidApplicationId = 'com.codesolution.vacansa';
 
-  static const String iosBundleId = 'com.codesolution.vacansa';
+  static const String iosBundleId = 'com.codesolution.vicanza';
 }

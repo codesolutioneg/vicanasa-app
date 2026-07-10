@@ -3,7 +3,7 @@
 - **Project:** `vacanca-app`
 - **Display name:** Vacansa app
 - **Android package:** `com.codesolution.vacansa`
-- **iOS bundle:** `com.codesolution.vacansa`
+- **iOS bundle:** `com.codesolution.vicanza`
 
 ## FlutterFire CLI
 
@@ -18,7 +18,7 @@ Re-configure:
 
 ```bash
 cd I:/juma_hub/flutter_finance_portal
-flutterfire configure --project=vacanca-app --platforms=android,ios,web --yes
+flutterfire configure --project=vacanca-app --platforms=ios --ios-bundle-id=com.codesolution.vicanza --yes
 ```
 
 ## Enable Cloud Messaging

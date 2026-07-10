@@ -40,11 +40,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAcCZqXdDelkz6v7NvdcIWpyqiWSnoDXfM',
-    appId: '1:238424492626:ios:6ca534c648eb1fc06eed8b',
+    appId: '1:238424492626:ios:8a8d1b255f60a8356eed8b',
     messagingSenderId: '238424492626',
     projectId: 'vacanca-app',
     storageBucket: 'vacanca-app.firebasestorage.app',
-    iosBundleId: 'com.codesolution.vacansa',
+    iosBundleId: 'com.codesolution.vicanza',
   );
-
 }

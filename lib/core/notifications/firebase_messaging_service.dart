@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../constants/env.dart';
+import '../firebase/firebase_bootstrap.dart';
 import '../utils/email_topic_sanitizer.dart';
 import 'local_notifications_service.dart';
 import 'navigation_service.dart';
@@ -14,36 +15,46 @@ import 'navigation_service.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
-/// FCM topic subscriptions — mobile only.
+/// FCM topic subscriptions — mobile only; no-op when Firebase/FCM is unavailable.
 class FirebaseMessagingService {
   FirebaseMessagingService._();
   static final FirebaseMessagingService instance = FirebaseMessagingService._();
 
   final _log = Logger();
   String? _emailTopic;
+  bool _enabled = false;
+
+  bool get isEnabled => _enabled;
 
   Future<void> init() async {
-    if (kIsWeb) return;
-    await LocalNotificationsService.instance.init();
-    await _requestPermission();
-    await FirebaseMessaging.instance
-        .setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    FirebaseMessaging.onMessage.listen(_onForeground);
-    FirebaseMessaging.onMessageOpenedApp.listen(
-      (m) => _onOpened(m, killed: false),
-    );
-    final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) _onOpened(initial, killed: true);
-    await subscribeToTopic(Env.fcmTopicAllUsers);
+    if (kIsWeb || !FirebaseBootstrap.isReady) return;
+    try {
+      await LocalNotificationsService.instance.init();
+      await _requestPermission();
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onMessage.listen(_onForeground);
+      FirebaseMessaging.onMessageOpenedApp.listen(
+        (m) => _onOpened(m, killed: false),
+      );
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) _onOpened(initial, killed: true);
+      await subscribeToTopic(Env.fcmTopicAllUsers);
+      _enabled = true;
+      _log.i('FCM ready');
+    } catch (e, st) {
+      _enabled = false;
+      _log.w('FCM init skipped — app continues without push', error: e, stackTrace: st);
+    }
   }
 
   Future<void> subscribeUserTopics(String email) async {
-    if (kIsWeb) return;
+    if (!_enabled) return;
     await subscribeToTopic(Env.fcmTopicAllUsers);
     final topic = sanitizeEmailForTopic(email);
     if (_emailTopic != null && _emailTopic != topic) {
@@ -54,13 +65,13 @@ class FirebaseMessagingService {
   }
 
   Future<void> unsubscribeUserTopic() async {
-    if (kIsWeb || _emailTopic == null) return;
+    if (!_enabled || _emailTopic == null) return;
     await unsubscribeFromTopic(_emailTopic!);
     _emailTopic = null;
   }
 
   Future<void> subscribeToTopic(String topic) async {
-    if (kIsWeb) return;
+    if (kIsWeb || !_enabled) return;
     try {
       await FirebaseMessaging.instance.subscribeToTopic(topic);
       _log.i('Subscribed to $topic');
@@ -70,7 +81,7 @@ class FirebaseMessagingService {
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
-    if (kIsWeb) return;
+    if (kIsWeb || !_enabled) return;
     try {
       await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
     } catch (e) {

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/di/injection.dart';
@@ -23,8 +24,11 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  static const Duration _splashHold = Duration(seconds: 3);
-  static const Duration _animationDuration = _splashHold;
+  static const Duration _splashHold = Duration(milliseconds: 1500);
+  static const Duration _bootTimeout = Duration(seconds: 8);
+  static const Duration _animationDuration = Duration(milliseconds: 1500);
+
+  final _log = Logger();
 
   late final AnimationController _controller;
   late final Animation<double> _phase1Fade;
@@ -84,8 +88,12 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 
   Future<void> _boot() async {
-    final auth = context.read<AuthCubit>();
-    await auth.checkSession();
+    try {
+      final auth = context.read<AuthCubit>();
+      await auth.checkSession().timeout(_bootTimeout);
+    } catch (e, st) {
+      _log.w('Splash session check skipped', error: e, stackTrace: st);
+    }
     if (!mounted) return;
     _bootComplete = true;
     _tryNavigate();
@@ -107,7 +115,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       context.go(AppRoutes.onboarding);
       return;
     }
-    if (state is AuthUnauthenticated) {
+    if (state is AuthUnauthenticated || (force && state is AuthLoading)) {
       _navigated = true;
       context.go(AppRoutes.login);
       return;
@@ -118,11 +126,17 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       return;
     }
     if (state is AuthAuthenticated) {
-      final period = await sl<FinancialRepository>().getPeriodInfo();
-      if (!mounted) return;
-      period.fold((_) {}, (data) {
-        context.read<FilterCubit>().applyPeriodCap(data);
-      });
+      try {
+        final period = await sl<FinancialRepository>()
+            .getPeriodInfo()
+            .timeout(_bootTimeout);
+        if (!mounted) return;
+        period.fold((_) {}, (data) {
+          context.read<FilterCubit>().applyPeriodCap(data);
+        });
+      } catch (e, st) {
+        _log.w('Period info skipped', error: e, stackTrace: st);
+      }
       if (!mounted) return;
       _navigated = true;
       context.go(AppRoutes.dashboard);
@@ -188,7 +202,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                 ),
                               ),
                             ),
-
                           Opacity(
                             opacity: _phase1Fade.value,
                             child: Transform.translate(
