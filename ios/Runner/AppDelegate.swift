@@ -16,7 +16,9 @@ import flutter_local_notifications
       UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
     }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    application.registerForRemoteNotifications()
+    return result
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {

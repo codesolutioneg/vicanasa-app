@@ -11,7 +11,9 @@ abstract final class AppConstants {
 
   static const String fcmTopicAllUsers = 'all_users';
 
+  static const String fcmTopicDevelopment = 'development';
+
   static const String androidApplicationId = 'com.codesolution.vacansa';
 
-  static const String iosBundleId = 'com.codesolution.vicanza';
+  static const String iosBundleId = 'com.codesolution.vacansa';
 }

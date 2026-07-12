@@ -73,6 +73,7 @@ class AuthCubit extends Cubit<AuthState> {
         if (!p.isFinancialPartner) {
           emit(AuthAccessDenied());
         } else {
+          await _auth.syncPushTopics();
           emit(AuthAuthenticated(p));
         }
       },

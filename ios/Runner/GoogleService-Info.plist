@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.codesolution.vicanza</string>
+	<string>com.codesolution.vacansa</string>
 	<key>PROJECT_ID</key>
 	<string>vacanca-app</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:238424492626:ios:8a8d1b255f60a8356eed8b</string>
+	<string>1:238424492626:ios:6ca534c648eb1fc06eed8b</string>
 </dict>
 </plist>

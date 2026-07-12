@@ -25,6 +25,7 @@ class AppStartup {
       }
       if (FirebaseBootstrap.isReady) {
         try {
+          await FirebaseMessagingService.instance.logFcmToken();
           await initNotifications();
         } catch (e, st) {
           _log.w('FCM startup skipped', error: e, stackTrace: st);

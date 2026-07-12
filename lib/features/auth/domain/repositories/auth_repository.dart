@@ -10,4 +10,5 @@ abstract interface class AuthRepository {
   Future<void> logout();
   Future<bool> hasSession();
   Future<String?> getStoredLogin();
+  Future<void> syncPushTopics();
 }

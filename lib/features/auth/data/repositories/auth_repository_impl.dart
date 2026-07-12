@@ -50,8 +50,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> syncPushTopics() async {
+    final email = await getStoredLogin();
+    if (email != null && email.isNotEmpty) {
+      await FirebaseMessagingService.instance.subscribeUserTopics(email);
+    }
+  }
+
+  @override
   Future<void> logout() async {
-    await FirebaseMessagingService.instance.unsubscribeUserTopic();
+    await FirebaseMessagingService.instance.unsubscribeUserTopics();
     await _client.logout();
     await _secure.delete(key: StorageKeys.sessionLogin);
   }
