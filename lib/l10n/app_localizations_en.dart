@@ -73,6 +73,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeBack => 'Welcome back';
 
   @override
+  String get demoWelcome => 'Demo App';
+
+  @override
+  String get demoSubtitle => 'Sample financial experience';
+
+  @override
   String get logout => 'Log out';
 
   @override

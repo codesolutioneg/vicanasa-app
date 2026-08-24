@@ -87,13 +87,11 @@ class PnlPageShimmer extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppDimensions.spaceMd),
       children: [
-        ShimmerLayouts.yearPickerCard(),
+        ShimmerLayouts.accountSection(rows: 4),
         const SizedBox(height: AppDimensions.spaceMd),
-        ShimmerLayouts.kpiGrid(context, count: 5),
-        const SizedBox(height: AppDimensions.spaceLg),
-        ShimmerLayouts.accountSection(rows: 6),
+        ShimmerLayouts.accountSection(rows: 4),
         const SizedBox(height: AppDimensions.spaceMd),
-        ShimmerLayouts.accountSection(rows: 6),
+        ShimmerLayouts.accountSection(rows: 3),
       ],
     );
   }

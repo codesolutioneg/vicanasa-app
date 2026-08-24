@@ -70,6 +70,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeBack => 'مرحباً بعودتك';
 
   @override
+  String get demoWelcome => 'تطبيق تجريبي';
+
+  @override
+  String get demoSubtitle => 'تجربة مالية تجريبية';
+
+  @override
   String get logout => 'تسجيل الخروج';
 
   @override

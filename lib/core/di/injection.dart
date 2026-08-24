@@ -15,6 +15,8 @@ import '../../features/shell/presentation/cubit/filter_cubit.dart';
 import '../network/connectivity_service.dart';
 import '../network/odoo_client.dart';
 import '../network/odoo_cookie_jar.dart';
+import '../review/mobile_versions_service.dart';
+import '../review/review_mode_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -39,6 +41,8 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => OnboardingRepository(sl()));
   sl.registerLazySingleton(FinancialPdfBuilder.new);
   sl.registerLazySingleton(PdfExportService.new);
+  sl.registerLazySingleton(MobileVersionsService.new);
+  sl.registerLazySingleton(ReviewModeCubit.new);
   sl.registerFactory(() => AuthCubit(sl(), sl()));
   sl.registerFactory(FilterCubit.new);
 }

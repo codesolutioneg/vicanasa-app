@@ -1,20 +1,18 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/liquid_glass.dart';
-import '../../../../core/utils/app_formatters.dart';
-import '../../../../core/utils/bilingual_display.dart';
 import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
-import '../../../../core/widgets/kpi_card.dart';
-import '../../../../l10n/app_localizations.dart';
+import '../../../../core/widgets/month_closing_banner.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
+import '../widgets/pnl_account_section.dart';
 
+/// P&L for the app-bar From/To range — grouped accounts by Odoo analysis level.
 class PnlPage extends StatefulWidget {
   const PnlPage({super.key});
 
@@ -26,7 +24,6 @@ class _PnlPageState extends State<PnlPage> {
   Map<String, dynamic>? _data;
   String? _error;
   bool _loading = true;
-  int _year = DateTime.now().year;
 
   @override
   void initState() {
@@ -37,8 +34,9 @@ class _PnlPageState extends State<PnlPage> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final filter = context.read<FilterCubit>().state;
-    final result = await sl<FinancialRepository>().getPnl(
-      year: _year,
+    final result = await sl<FinancialRepository>().getFinancialData(
+      dateFrom: filter.dateFromStr,
+      dateTo: filter.dateToStr,
       analyticId: filter.analyticId,
     );
     if (!mounted) return;
@@ -55,175 +53,120 @@ class _PnlPageState extends State<PnlPage> {
     );
   }
 
-  double _n(dynamic v) => (v as num?)?.toDouble() ?? 0;
+  List<Map<String, dynamic>> _groups(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  List<int> _allowedIds(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map((e) => (e as num).toInt()).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return BlocListener<FilterCubit, FilterState>(
-      listener: (_, __) => _load(),
-      child: _buildBody(l10n),
+    final base = Theme.of(context);
+    return Theme(
+      data: base.copyWith(
+        textTheme: GoogleFonts.cairoTextTheme(base.textTheme),
+        primaryTextTheme: GoogleFonts.cairoTextTheme(base.primaryTextTheme),
+      ),
+      child: BlocListener<FilterCubit, FilterState>(
+        listener: (_, __) => _load(),
+        child: _buildBody(),
+      ),
     );
   }
 
-  Widget _buildBody(AppLocalizations l10n) {
+  Widget _buildBody() {
     if (_loading) return const PnlPageShimmer();
     if (_error != null) return ErrorRetry(message: _error!, onRetry: _load);
-    final pnl = Map<String, dynamic>.from(_data!['pnl_data'] as Map? ?? {});
-    final years = (_data!['available_years'] as List?)?.cast<int>() ?? [_year];
+    final data = _data!;
+    final level = '${data['analysis_level'] ?? 'none'}'.trim();
+    final allowedIds = _allowedIds(data['allowed_group_ids']);
+    final revenue = _groups(data['revenue_grouped']);
+    final costs = _groups(data['cost_grouped']);
+    final expenses = _groups(data['expense_grouped']);
+    final capped = data['data_capped'] == true;
 
-    return ListView(
-      primary: false,
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppDimensions.spaceMd),
-      children: [
-        LiquidGlassCard(
-          child: Row(
-            children: [
-              const Icon(CupertinoIcons.calendar, color: AppColors.primaryMid),
-              const SizedBox(width: AppDimensions.spaceSm),
-              Text(l10n.year, style: AppTextStyles.labelLg),
-              const Spacer(),
-              DropdownButton<int>(
-                value: _year,
-                underline: const SizedBox.shrink(),
-                items: years
-                    .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-                    .toList(),
-                onChanged: (y) {
-                  if (y != null) {
-                    setState(() => _year = y);
-                    _load();
-                  }
-                },
+    return RefreshIndicator(
+      color: AppColors.primaryMid,
+      onRefresh: _load,
+      child: ListView(
+        primary: false,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppDimensions.spaceMd),
+        children: [
+          if (capped && data['closed_display_text'] != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.spaceMd),
+              child: MonthClosingBanner(
+                period: '${data['closed_display_text']}',
               ),
-            ],
+            ),
+          if (level == 'none') ...[
+            _permissionBanner(
+              branchSelected:
+                  context.read<FilterCubit>().state.analyticId != null,
+            ),
+            const SizedBox(height: AppDimensions.spaceMd),
+          ],
+          PnlAccountSection(
+            title: 'Revenue Accounts',
+            groups: revenue,
+            accent: AppColors.kpiRevenue,
+            analysisLevel: level,
+            allowedGroupIds: allowedIds,
+            fallbackTotal: (data['revenue'] as num?)?.toDouble(),
           ),
-        ),
-        const SizedBox(height: AppDimensions.spaceMd),
-        LayoutBuilder(
-          builder: (context, c) {
-            final w = (c.maxWidth - AppDimensions.spaceSm) / 2;
-            return Wrap(
-              spacing: AppDimensions.spaceSm,
-              runSpacing: AppDimensions.spaceSm,
-              children: [
-                SizedBox(
-                  width: w,
-                  child: KpiCard(
-                    label: l10n.kpiRevenue,
-                    value: _n(pnl['total_revenue']),
-                    color: AppColors.kpiRevenue,
-                  ),
-                ),
-                SizedBox(
-                  width: w,
-                  child: KpiCard(
-                    label: l10n.kpiCost,
-                    value: _n(pnl['total_cost']),
-                    color: AppColors.kpiCost,
-                  ),
-                ),
-                SizedBox(
-                  width: w,
-                  child: KpiCard(
-                    label: l10n.kpiGrossProfit,
-                    value: _n(pnl['gross_profit']),
-                    color: AppColors.kpiProfit,
-                  ),
-                ),
-                SizedBox(
-                  width: w,
-                  child: KpiCard(
-                    label: l10n.kpiNetProfit,
-                    value: _n(pnl['net_profit']),
-                    color: AppColors.kpiProfit,
-                  ),
-                ),
-                SizedBox(
-                  width: c.maxWidth,
-                  child: KpiCard(
-                    label: l10n.kpiPartnerShare,
-                    value: _n(pnl['partner_share']),
-                    color: AppColors.primaryMid,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: AppDimensions.spaceLg),
-        _AccountSection(
-          title: 'Revenue Accounts',
-          accounts: pnl['revenue_accounts'],
-          accent: AppColors.kpiRevenue,
-        ),
-        const SizedBox(height: AppDimensions.spaceMd),
-        _AccountSection(
-          title: 'Cost Accounts',
-          accounts: pnl['cost_accounts'],
-          accent: AppColors.kpiCost,
-        ),
-      ],
+          const SizedBox(height: AppDimensions.spaceMd),
+          PnlAccountSection(
+            title: 'Cost Accounts',
+            groups: costs,
+            accent: AppColors.kpiCost,
+            analysisLevel: level,
+            allowedGroupIds: allowedIds,
+            fallbackTotal: (data['cost'] as num?)?.toDouble(),
+          ),
+          const SizedBox(height: AppDimensions.spaceMd),
+          PnlAccountSection(
+            title: 'Expense Accounts',
+            groups: expenses,
+            accent: AppColors.kpiExpense,
+            analysisLevel: level,
+            allowedGroupIds: allowedIds,
+            fallbackTotal: (data['expense'] as num?)?.toDouble(),
+            initiallyExpanded: false,
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
-}
 
-class _AccountSection extends StatelessWidget {
-  const _AccountSection({
-    required this.title,
-    required this.accounts,
-    required this.accent,
-  });
-
-  final String title;
-  final dynamic accounts;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final list = accounts as List? ?? [];
-    return LiquidGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spaceSm),
-              Text(title, style: AppTextStyles.headlineSm),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spaceSm),
-          if (list.isEmpty)
-            Text(
-              AppLocalizations.of(context)!.noData,
-              style: AppTextStyles.bodyMd,
-            )
-          else
-            ...list.map((a) {
-              final m = Map<String, dynamic>.from(a as Map);
-              final amount = (m['amount'] as num?)?.toDouble() ?? 0;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppDimensions.spaceXs),
-                child: BilingualDisplay.accountAmountRow(
-                  code: '${m['code'] ?? ''}',
-                  name: '${m['name'] ?? ''}',
-                  amountText: AppFormatters.money(amount),
-                  codeStyle: AppTextStyles.bodySm,
-                  nameStyle: AppTextStyles.bodySm,
-                  amountStyle: AppTextStyles.financial.copyWith(color: accent),
-                ),
-              );
-            }),
-        ],
+  Widget _permissionBanner({required bool branchSelected}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warningBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warningBorder.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        branchSelected
+            ? 'Branch filter is working, but this branch’s Financial analysis '
+                'level in Odoo is set to none, so account names are cleared. '
+                'All Branches uses the partner-level setting (all_details). '
+                'Raise each branch config’s analysis level to show names.'
+            : 'Your analysis level is set to none. Group and account details are hidden. '
+                'Ask an administrator to raise Financial analysis level if you need P&L drill-down.',
+        textAlign: TextAlign.right,
+        style: GoogleFonts.cairo(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textSecondary,
+          letterSpacing: 0,
+        ),
       ),
     );
   }

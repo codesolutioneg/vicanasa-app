@@ -218,6 +218,18 @@ abstract class AppLocalizations {
   /// **'Welcome back'**
   String get welcomeBack;
 
+  /// No description provided for @demoWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo App'**
+  String get demoWelcome;
+
+  /// No description provided for @demoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample financial experience'**
+  String get demoSubtitle;
+
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:

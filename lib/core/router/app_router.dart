@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/access_denied_page.dart';
@@ -35,6 +36,8 @@ abstract final class AppRoutes {
   static const capital = '/capital';
 }
 
+final _routerLog = Logger();
+
 GoRouter createAppRouter(AuthCubit authCubit) {
   return GoRouter(
     navigatorKey: NavigationService.rootKey,
@@ -43,31 +46,27 @@ GoRouter createAppRouter(AuthCubit authCubit) {
     redirect: (context, state) {
       final loc = state.matchedLocation;
       final auth = authCubit.state;
+      String? target;
       if (auth is AuthInitial) {
-        if (loc != AppRoutes.splash) return AppRoutes.splash;
-        return null;
-      }
-      // Stay on login/splash while signing in — do not bounce to splash mid-login.
-      if (auth is AuthLoading) {
-        if (loc == AppRoutes.login || loc == AppRoutes.splash) return null;
-        return null;
-      }
-      if (auth is AuthUnauthenticated) {
-        if (loc == AppRoutes.login || loc == AppRoutes.onboarding) return null;
-        if (loc == AppRoutes.splash) return AppRoutes.login;
-        return AppRoutes.login;
-      }
-      if (auth is AuthAccessDenied) {
-        if (loc == AppRoutes.accessDenied) return null;
-        return AppRoutes.accessDenied;
-      }
-      if (auth is AuthAuthenticated) {
-        if (loc == AppRoutes.splash) return null;
+        if (loc != AppRoutes.splash) target = AppRoutes.splash;
+      } else if (auth is AuthLoading) {
+        // Stay on login/splash while signing in.
+      } else if (auth is AuthUnauthenticated) {
+        if (loc != AppRoutes.login && loc != AppRoutes.onboarding) {
+          target = AppRoutes.login;
+        }
+      } else if (auth is AuthAccessDenied) {
+        if (loc != AppRoutes.accessDenied) target = AppRoutes.accessDenied;
+      } else if (auth is AuthAuthenticated) {
         if (loc == AppRoutes.login || loc == AppRoutes.onboarding) {
-          return AppRoutes.dashboard;
+          target = AppRoutes.dashboard;
         }
       }
-      return null;
+      _routerLog.i(
+        'App flow: router redirect loc=$loc auth=${auth.runtimeType} '
+        '→ ${target ?? 'stay'}',
+      );
+      return target;
     },
     routes: [
       GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashPage()),

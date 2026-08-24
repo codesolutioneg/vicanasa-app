@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/di/injection.dart';
+import 'core/review/review_mode_cubit.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_fonts.dart';
 import 'core/theme/app_theme.dart';
@@ -41,6 +42,7 @@ class _VacansaAppState extends State<VacansaApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _authCubit),
+        BlocProvider.value(value: sl<ReviewModeCubit>()),
         BlocProvider(create: (_) => sl<FilterCubit>()),
       ],
       child: MaterialApp.router(

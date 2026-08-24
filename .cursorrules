@@ -4,6 +4,19 @@ alwaysApply: true
 ---
 
 # ============================================================
+# JOUMA ODOO — NEVER PUSH (HARD RULE)
+# ============================================================
+# Local folder `jouma/` is a READ-ONLY reference clone of
+# https://github.com/codesolutioneg/jouma.git
+#
+# ❌ NEVER git push / force-push / commit / amend / PR against jouma
+# ❌ NEVER modify jouma source unless the user explicitly orders it
+# ✅ git pull / fetch only when the user asks to refresh the reference
+# ✅ Read jouma only to mirror formulas & APIs in the Flutter app
+# All product changes belong in this Flutter repo, not jouma.
+# ============================================================
+
+# ============================================================
 # ENGINEERING RULES — Mobile & Software Development
 # Author: Personal Cursor Rules
 # Version: 2.0

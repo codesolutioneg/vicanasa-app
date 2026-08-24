@@ -9,14 +9,16 @@ import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/widgets/error_retry.dart';
 import '../../../../core/widgets/month_closing_banner.dart';
 import '../../domain/dashboard_metrics.dart';
+import '../../domain/dashboard_monthly_trend.dart';
 import '../cubit/dashboard_cubit.dart';
-import '../widgets/dashboard_balance_cards.dart';
 import '../widgets/dashboard_breakdown_list.dart';
 import '../widgets/dashboard_charts_section.dart';
+import '../widgets/dashboard_deductions_card.dart';
 import '../widgets/dashboard_grouped_sheet.dart';
 import '../widgets/dashboard_hero_card.dart';
 import '../widgets/dashboard_main_kpis.dart';
 import '../widgets/dashboard_ratio_cards.dart';
+import '../widgets/dashboard_revenue_card.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -56,11 +58,6 @@ class _DashboardPageState extends State<DashboardPage> {
     return raw.map((e) => (e as num).toInt()).toList();
   }
 
-  double _returnOnCapital(double netProfit, double capital) {
-    if (capital <= 0) return 0;
-    return (netProfit / capital * 100).clamp(0, 100);
-  }
-
   Widget _sectionTitle(String text) => Padding(
         padding: const EdgeInsets.only(left: 4),
         child: Text(text, style: AppTextStyles.headlineSm),
@@ -80,20 +77,43 @@ class _DashboardPageState extends State<DashboardPage> {
             return ErrorRetry(message: state.message, onRetry: _load);
           }
           final data = (state as DashboardLoaded).data;
-          final level = data['analysis_level'] as String? ?? 'none';
+          final filter = context.read<FilterCubit>().state;
+          // Odoo: none | group_totals | all_details | custom
+          final level = '${data['analysis_level'] ?? 'none'}'.trim();
+          final canOpenAnalysis = level.isNotEmpty && level != 'none';
           final capped = data['data_capped'] == true;
           final revenueGrouped = _groups(data['revenue_grouped']);
           final costGrouped = _groups(data['cost_grouped']);
           final expenseGrouped = _groups(data['expense_grouped']);
           final allowedIds = _allowedIds(data['allowed_group_ids']);
-          final monthly = _groups(data['monthly_data']);
+          final monthly = DashboardMonthlyTrend.from(data);
           final ratios = DashboardMetrics.ratios(data);
-          final profitDist = DashboardMetrics.profitDistribution(data);
+          final branchShareLines = DashboardMetrics.branchShares(
+            data,
+            analyticId: filter.analyticId,
+          );
+          final myShareTotal = branchShareLines.isNotEmpty
+              ? DashboardMetrics.totalBranchShare(branchShareLines)
+              : _n(data['partner_share']);
+          final singleBranchPct = branchShareLines.length == 1
+              ? branchShareLines.first.sharePercentage
+              : null;
+          final profitDist = DashboardMetrics.profitDistribution(
+            data,
+            analyticId: filter.analyticId,
+          );
           final revenue = _n(data['revenue']);
           final cost = _n(data['cost']);
           final expense = _n(data['expense']);
           final netProfit = _n(data['net_profit']);
           final capital = _n(data['capital_balance']);
+
+          final ratiosMap = data['ratios'] is Map
+              ? Map<String, dynamic>.from(data['ratios'] as Map)
+              : null;
+          final salesBase = revenueGrouped.isNotEmpty
+              ? DashboardMetrics.salesVal(revenueGrouped, revenue)
+              : ((ratiosMap?['sales'] as num?)?.toDouble() ?? revenue);
 
           return RefreshIndicator(
             color: AppColors.primaryMid,
@@ -111,26 +131,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 DashboardHeroCard(
                   netProfit: netProfit,
                   revenue: revenue,
-                  partnerShare: _n(data['partner_share']),
-                  sharePercentage: _n(data['share_percentage']),
+                  branchShares: branchShareLines,
                   isLoss: profitDist.isLoss,
                 ),
                 const SizedBox(height: AppDimensions.spaceLg),
                 _sectionTitle('Overview'),
                 const SizedBox(height: AppDimensions.spaceSm),
-                DashboardMainKpis(
+                DashboardRevenueCard(
                   revenue: revenue,
-                  cost: cost,
-                  expense: expense,
-                  netProfit: netProfit,
-                  partnerShare: _n(data['partner_share']),
-                  capitalBalance: capital,
-                  sharePercentage: _n(data['share_percentage']),
-                  onRevenueTap: level != 'none'
+                  branchLines: branchShareLines,
+                  onTap: canOpenAnalysis
                       ? () => showDashboardGroupedSheet(
                             context,
                             title: 'Revenue Analysis',
-                            headerColor: AppColors.kpiRevenue,
+                            headerColor: AppColors.accentGreen,
                             groups: revenueGrouped,
                             analysisLevel: level,
                             allowedGroupIds: allowedIds,
@@ -138,7 +152,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             grandLabel: 'Total Revenue',
                           )
                       : null,
-                  onDeductionsTap: level != 'none'
+                ),
+                const SizedBox(height: AppDimensions.spaceMd),
+                DashboardDeductionsCard(
+                  cost: cost,
+                  expense: expense,
+                  branchLines: branchShareLines,
+                  onTap: canOpenAnalysis
                       ? () => showDeductionsSheet(
                             context,
                             costGrouped: costGrouped,
@@ -147,12 +167,18 @@ class _DashboardPageState extends State<DashboardPage> {
                             expenseTotal: expense,
                             analysisLevel: level,
                             allowedGroupIds: allowedIds,
+                            salesBase: salesBase,
                           )
                       : null,
                 ),
-                const SizedBox(height: AppDimensions.spaceMd),
-                DashboardBalanceCards(
+                const SizedBox(height: AppDimensions.spaceSm),
+                DashboardMainKpis(
+                  revenue: revenue,
+                  netProfit: netProfit,
+                  myShare: myShareTotal,
+                  capitalBalance: capital,
                   distributionBalance: _n(data['distribution_balance']),
+                  branchLines: branchShareLines,
                 ),
                 const SizedBox(height: AppDimensions.spaceLg),
                 _sectionTitle('Trends'),
@@ -180,9 +206,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       costRatio: ratios.costRatio,
                       otherIncomeRatio: ratios.otherIncomeRatio,
                       profitMargin: ratios.profitMargin,
-                      partnerMargin: ratios.partnerMargin,
-                      sharePercentage: _n(data['share_percentage']),
-                      returnOnCapital: _returnOnCapital(netProfit, capital),
+                      partnerMargin: salesBase > 0
+                          ? myShareTotal / salesBase * 100
+                          : ratios.partnerMargin,
+                      sharePercentage: singleBranchPct,
                     );
                     if (wide) {
                       return Row(

@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
+
+import '../../../../core/review/review_mode_cubit.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/utils/bilingual_display.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -11,10 +13,9 @@ import '../../../../core/theme/liquid_glass.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../financial/domain/entities/partner_info.dart';
-import '../../domain/closed_month_option.dart';
 import '../cubit/filter_cubit.dart';
 import '../widgets/branch_selector.dart';
-import '../widgets/closed_months_picker_sheet.dart';
+import '../widgets/compact_date_range_filter.dart';
 import '../widgets/date_filter_bar.dart';
 
 class FinancialShellPage extends StatefulWidget {
@@ -26,6 +27,9 @@ class FinancialShellPage extends StatefulWidget {
 }
 
 class _FinancialShellPageState extends State<FinancialShellPage> {
+  static final _log = Logger();
+  bool? _lastLoggedReview;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -33,6 +37,17 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final auth = context.watch<AuthCubit>().state;
     final partner = auth is AuthAuthenticated ? auth.partner : null;
+    final isReview = context.watch<ReviewModeCubit>().state;
+
+    if (_lastLoggedReview != isReview) {
+      _lastLoggedReview = isReview;
+      _log.i(
+        'App flow: shell UI loc=$loc reviewMode=$isReview '
+        'partner=${partner?.partnerName} '
+        'demoHeader=${isReview ? 'Demo App' : 'Welcome back'} '
+        'logoutHidden=$isReview',
+      );
+    }
 
     final navItems = [
       (AppRoutes.dashboard, l10n.navDashboard, CupertinoIcons.square_grid_2x2_fill),
@@ -57,13 +72,14 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
               navItems: navItems,
               moreItems: moreItems,
               current: loc,
+              isReviewMode: isReview,
               onLogout: () => context.read<AuthCubit>().logout(),
             ),
             Expanded(
               child: Column(
                 children: [
-                  _Header(partner: partner),
-                  const DateFilterBar(),
+                  _Header(partner: partner, isReviewMode: isReview),
+                  if (loc != AppRoutes.comparison) const DateFilterBar(),
                   const BranchSelector(),
                   Expanded(child: widget.child),
                 ],
@@ -78,7 +94,11 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
       backgroundColor: AppColors.bgPrimary,
       body: Column(
         children: [
-          _MobileHeader(partner: partner, l10n: l10n),
+          _MobileHeader(
+            partner: partner,
+            l10n: l10n,
+            isReviewMode: isReview,
+          ),
           Expanded(child: widget.child),
         ],
       ),
@@ -86,6 +106,7 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
         navItems: navItems,
         moreItems: moreItems,
         currentLoc: loc,
+        isReviewMode: isReview,
         onLogout: () => context.read<AuthCubit>().logout(),
         onMore: () => _showMore(context, moreItems),
       ),
@@ -121,13 +142,18 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
 
 // ─── Shared desktop/wide header ───────────────────────────────────────────────
 class _Header extends StatelessWidget {
-  const _Header({this.partner});
+  const _Header({this.partner, this.isReviewMode = false});
   final PartnerInfo? partner;
+  final bool isReviewMode;
 
   @override
   Widget build(BuildContext context) {
-    if (partner == null) return const SizedBox.shrink();
+    if (partner == null && !isReviewMode) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
+    final title = isReviewMode ? l10n.demoWelcome : l10n.welcomeBack;
+    final subtitle = isReviewMode
+        ? l10n.demoSubtitle
+        : (partner?.partnerName ?? '');
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: const BoxDecoration(
@@ -137,11 +163,8 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.welcomeBack, style: AppTextStyles.caption),
-          Text(
-            partner!.partnerName ?? '',
-            style: AppTextStyles.headlineSm,
-          ),
+          Text(title, style: AppTextStyles.caption),
+          Text(subtitle, style: AppTextStyles.headlineSm),
         ],
       ),
     );
@@ -150,12 +173,21 @@ class _Header extends StatelessWidget {
 
 // ─── Mobile sticky header (HTML design) ───────────────────────────────────────
 class _MobileHeader extends StatelessWidget {
-  const _MobileHeader({required this.partner, required this.l10n});
+  const _MobileHeader({
+    required this.partner,
+    required this.l10n,
+    this.isReviewMode = false,
+  });
   final PartnerInfo? partner;
   final AppLocalizations l10n;
+  final bool isReviewMode;
 
   @override
   Widget build(BuildContext context) {
+    final title = isReviewMode ? l10n.demoWelcome : l10n.welcomeBack;
+    final subtitle = isReviewMode
+        ? l10n.demoSubtitle
+        : (partner?.partnerName ?? '...');
     return Container(
       color: AppColors.bgSecondary,
       child: SafeArea(
@@ -172,11 +204,13 @@ class _MobileHeader extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.welcomeBack,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.textTertiary)),
                   Text(
-                    partner?.partnerName ?? '...',
+                    title,
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textTertiary),
+                  ),
+                  Text(
+                    subtitle,
                     style: AppTextStyles.headlineSm,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -194,143 +228,23 @@ class _MobileHeader extends StatelessWidget {
   }
 }
 
-// ─── Compact filter row: period preset + branch ────────────────────────────────
+// ─── Compact filter row: From/To dates (Odoo-style) + branch ───────────────────
 class _CompactFiltersRow extends StatelessWidget {
   const _CompactFiltersRow();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final loc = GoRouterState.of(context).matchedLocation;
+    final hideDates = loc == AppRoutes.comparison;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Expanded(child: _PeriodDropdown()),
-        const SizedBox(width: 8),
-        Expanded(child: _MinibranchSelector()),
+        if (!hideDates) ...[
+          const CompactDateRangeFilter(),
+          const SizedBox(height: 8),
+        ],
+        const _MinibranchSelector(),
       ],
-    );
-  }
-}
-
-class _PeriodDropdown extends StatelessWidget {
-  const _PeriodDropdown();
-
-  String _displayLabel(FilterState s) {
-    if (s.periodPreset == 'YTD') return 'This Year';
-    if (s.periodPreset == 'MULTI' && s.selectedMonthKeys.length > 1) {
-      return '${s.selectedMonthKeys.length} months';
-    }
-    if (s.closedMonths.isNotEmpty) {
-      for (final m in s.closedMonths) {
-        if (m.key == s.periodPreset) return BilingualDisplay.swapMonthLabel(m.name);
-      }
-    }
-    return '${s.dateFrom.month}/${s.dateFrom.year} – ${s.dateTo.month}/${s.dateTo.year}';
-  }
-
-  Future<void> _openMultiPicker(BuildContext context, FilterState state) async {
-    final picked = await showClosedMonthsPickerSheet(
-      context: context,
-      closedMonths: state.closedMonths,
-      initialSelectedKeys: state.selectedMonthKeys,
-    );
-    if (picked == null || picked.isEmpty || !context.mounted) return;
-    context.read<FilterCubit>().setClosedMonths(picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<FilterCubit>().state;
-    final cubit = context.read<FilterCubit>();
-    final hasClosed = state.closedMonths.isNotEmpty;
-    final display = _displayLabel(state);
-
-    if (!hasClosed) {
-      return _FilterBox(
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: state.periodPreset == 'MTD' ||
-                    state.periodPreset == 'YTD' ||
-                    state.periodPreset == 'LAST'
-                ? state.periodPreset
-                : null,
-            hint: Text(
-              display,
-              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-              overflow: TextOverflow.ellipsis,
-            ),
-            isExpanded: true,
-            isDense: true,
-            icon: const Icon(CupertinoIcons.chevron_down,
-                size: 13, color: AppColors.textSecondary),
-            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-            items: const [
-              DropdownMenuItem(value: 'YTD', child: Text('This Year', style: TextStyle(fontSize: 12))),
-              DropdownMenuItem(value: 'MTD', child: Text('This Month', style: TextStyle(fontSize: 12))),
-              DropdownMenuItem(value: 'LAST', child: Text('Last Month', style: TextStyle(fontSize: 12))),
-            ],
-            onChanged: (v) {
-              if (v == 'MTD') cubit.setMtd();
-              if (v == 'YTD') cubit.setYtd();
-              if (v == 'LAST') cubit.setLastMonth();
-            },
-          ),
-        ),
-      );
-    }
-
-    final menuKeys = <String>['YTD', 'MULTI', ...state.closedMonths.map((m) => m.key)];
-
-    return _FilterBox(
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: menuKeys.contains(state.periodPreset) ? state.periodPreset : null,
-          hint: Text(
-            display,
-            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-            overflow: TextOverflow.ellipsis,
-          ),
-          isExpanded: true,
-          isDense: true,
-          icon: const Icon(CupertinoIcons.chevron_down,
-              size: 13, color: AppColors.textSecondary),
-          style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-          items: [
-            const DropdownMenuItem(
-              value: 'YTD',
-              child: Text('This Year', style: TextStyle(fontSize: 12)),
-            ),
-            const DropdownMenuItem(
-              value: 'MULTI',
-              child: Text('Select months…', style: TextStyle(fontSize: 12)),
-            ),
-            ...state.closedMonths.map(
-              (ClosedMonthOption m) => DropdownMenuItem(
-                value: m.key,
-                child: BilingualDisplay.monthLabel(
-                  m.name,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
-          ],
-          onChanged: (v) async {
-            if (v == null) return;
-            if (v == 'YTD') {
-              cubit.setYtd();
-              return;
-            }
-            if (v == 'MULTI') {
-              await _openMultiPicker(context, state);
-              return;
-            }
-            for (final m in state.closedMonths) {
-              if (m.key == v) {
-                cubit.setClosedMonth(m);
-                break;
-              }
-            }
-          },
-        ),
-      ),
     );
   }
 }
@@ -403,6 +317,7 @@ class _MobileBottomNav extends StatelessWidget {
     required this.currentLoc,
     required this.onLogout,
     required this.onMore,
+    this.isReviewMode = false,
   });
 
   final List<(String, String, IconData)> navItems;
@@ -410,6 +325,7 @@ class _MobileBottomNav extends StatelessWidget {
   final String currentLoc;
   final VoidCallback onLogout;
   final VoidCallback onMore;
+  final bool isReviewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -438,12 +354,13 @@ class _MobileBottomNav extends StatelessWidget {
                   active: moreItems.any((e) => currentLoc.startsWith(e.$1)),
                   onTap: onMore,
                 ),
-              _NavBtn(
-                icon: CupertinoIcons.square_arrow_left,
-                label: 'Logout',
-                active: false,
-                onTap: onLogout,
-              ),
+              if (!isReviewMode)
+                _NavBtn(
+                  icon: CupertinoIcons.square_arrow_left,
+                  label: 'Logout',
+                  active: false,
+                  onTap: onLogout,
+                ),
             ],
           ),
         ),
@@ -500,6 +417,7 @@ class _Sidebar extends StatelessWidget {
     required this.onLogout,
     this.partner,
     this.inDrawer = false,
+    this.isReviewMode = false,
   });
 
   final List<(String, String, IconData)> navItems;
@@ -508,10 +426,14 @@ class _Sidebar extends StatelessWidget {
   final VoidCallback onLogout;
   final PartnerInfo? partner;
   final bool inDrawer;
+  final bool isReviewMode;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final subtitle = isReviewMode
+        ? l10n.demoSubtitle
+        : (partner?.partnerName ?? '');
     return Container(
       width: inDrawer ? null : AppDimensions.sidebarWidth,
       decoration: const BoxDecoration(
@@ -544,10 +466,13 @@ class _Sidebar extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l10n.appTitle, style: AppTextStyles.headlineSm),
-                        if (partner != null)
+                        Text(
+                          isReviewMode ? l10n.demoWelcome : l10n.appTitle,
+                          style: AppTextStyles.headlineSm,
+                        ),
+                        if (subtitle.isNotEmpty)
                           Text(
-                            partner!.partnerName ?? '',
+                            subtitle,
                             style: AppTextStyles.caption,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -607,17 +532,18 @@ class _Sidebar extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppDimensions.spaceSm),
-              child: _NavTile(
-                route: '',
-                label: l10n.logout,
-                icon: CupertinoIcons.square_arrow_left,
-                current: current,
-                popDrawer: inDrawer,
-                onTap: onLogout,
+            if (!isReviewMode)
+              Padding(
+                padding: const EdgeInsets.all(AppDimensions.spaceSm),
+                child: _NavTile(
+                  route: '',
+                  label: l10n.logout,
+                  icon: CupertinoIcons.square_arrow_left,
+                  current: current,
+                  popDrawer: inDrawer,
+                  onTap: onLogout,
+                ),
               ),
-            ),
           ],
         ),
       ),

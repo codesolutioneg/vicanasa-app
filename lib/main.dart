@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:logger/logger.dart';
 
@@ -11,10 +12,15 @@ import 'core/startup/app_startup.dart';
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await dotenv.load(fileName: '.env');
     await configureDependencies();
 
     FlutterError.onError = (details) {
-      Logger().e('Flutter error', error: details.exception, stackTrace: details.stack);
+      Logger().e(
+        'Flutter error',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
     };
 
     runApp(const VacansaBootstrap());
@@ -24,6 +30,10 @@ Future<void> main() async {
 }
 
 /// Shows UI immediately; Firebase / LiquidGlass run after the first frame.
+///
+/// Important: [VacansaApp] must stay mounted for the whole lifetime. Swapping
+/// the root between bare app ↔ LiquidGlass wrap remounts GoRouter/splash and
+/// makes the splash play twice.
 class VacansaBootstrap extends StatefulWidget {
   const VacansaBootstrap({super.key});
 
@@ -32,21 +42,22 @@ class VacansaBootstrap extends StatefulWidget {
 }
 
 class _VacansaBootstrapState extends State<VacansaBootstrap> {
+  static const Key _appKey = ValueKey<String>('vacansa_app');
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await AppStartup.schedule();
-      if (mounted) setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(AppStartup.schedule());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    const app = VacansaApp();
-    if (AppStartup.liquidGlassReady) {
-      return LiquidGlassWidgets.wrap(child: app);
-    }
-    return app;
+    // Always wrap so the child Element for VacansaApp never moves/disposes
+    // when LiquidGlass finishes initializing.
+    return LiquidGlassWidgets.wrap(
+      child: const VacansaApp(key: _appKey),
+    );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:logger/logger.dart';
+
 import '../../../../core/error/failures.dart';
 import '../../../financial/domain/entities/partner_info.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
@@ -39,42 +41,68 @@ class AuthCubit extends Cubit<AuthState> {
 
   final AuthRepository _auth;
   final FinancialRepository _financial;
+  final _log = Logger();
 
   Future<void> checkSession() async {
+    _log.i('App flow: auth checkSession START (state=${state.runtimeType})');
     emit(AuthLoading());
-    if (!await _auth.hasSession()) {
+    final hasSession = await _auth.hasSession();
+    _log.i('App flow: auth hasSession=$hasSession');
+    if (!hasSession) {
       emit(AuthUnauthenticated());
+      _log.i('App flow: auth → AuthUnauthenticated');
       return;
     }
     await _loadPartner(clearStaleSession: true);
   }
 
   Future<void> login(String email, String password) async {
+    _log.i('App flow: auth login START email=$email');
     emit(AuthLoading());
     final result = await _auth.login(email: email, password: password);
     await result.fold(
-      (f) async => emit(AuthError(_msg(f))),
-      (_) async => _loadPartner(),
+      (f) async {
+        final msg = _msg(f);
+        _log.w('App flow: auth login FAILED type=${f.runtimeType} msg=$msg');
+        emit(AuthError(msg));
+      },
+      (_) async {
+        _log.i('App flow: auth login OK → loading partner');
+        await _loadPartner();
+      },
     );
   }
 
   Future<void> _loadPartner({bool clearStaleSession = false}) async {
+    _log.i('App flow: auth loadPartner START clearStale=$clearStaleSession');
     final result = await _financial.getPartnerInfo();
     await result.fold(
       (f) async {
+        _log.w(
+          'App flow: auth partner FAILED type=${f.runtimeType} '
+          'msg=${f.message}',
+        );
         if (clearStaleSession && _shouldClearSession(f)) {
           await _auth.logout();
           emit(AuthUnauthenticated());
+          _log.i('App flow: auth → AuthUnauthenticated (stale cleared)');
         } else {
           emit(AuthError(_msg(f)));
+          _log.i('App flow: auth → AuthError');
         }
       },
       (p) async {
+        _log.i(
+          'App flow: auth partner OK isFinancial=${p.isFinancialPartner} '
+          'name=${p.partnerName} id=${p.partnerId}',
+        );
         if (!p.isFinancialPartner) {
           emit(AuthAccessDenied());
+          _log.i('App flow: auth → AuthAccessDenied');
         } else {
           await _auth.syncPushTopics();
           emit(AuthAuthenticated(p));
+          _log.i('App flow: auth → AuthAuthenticated');
         }
       },
     );
@@ -92,6 +120,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> logout() async {
+    _log.i('App flow: auth logout');
     await _auth.logout();
     emit(AuthUnauthenticated());
   }

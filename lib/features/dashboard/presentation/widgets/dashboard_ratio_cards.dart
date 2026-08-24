@@ -14,7 +14,6 @@ class DashboardRatioCards extends StatelessWidget {
     required this.profitMargin,
     required this.partnerMargin,
     required this.sharePercentage,
-    required this.returnOnCapital,
   });
 
   final double expenseRatio;
@@ -22,8 +21,7 @@ class DashboardRatioCards extends StatelessWidget {
   final double otherIncomeRatio;
   final double profitMargin;
   final double partnerMargin;
-  final double sharePercentage;
-  final double returnOnCapital;
+  final double? sharePercentage;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +33,7 @@ class DashboardRatioCards extends StatelessWidget {
           Text('Financial Ratios', style: AppTextStyles.headlineSm),
           const SizedBox(height: 16),
           _RatioBar(
-            label: 'Profit Margin',
+            label: 'Net Profit Margin',
             value: profitMargin,
             color: AppColors.accentGreen,
           ),
@@ -61,18 +59,12 @@ class DashboardRatioCards extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           _RatioBar(
-            label: 'Your Margin (${AppFormatters.percent1.format(sharePercentage)}%)',
+            label: sharePercentage != null
+                ? 'Your Margin (${AppFormatters.percent1.format(sharePercentage!)}%)'
+                : 'Your Margin',
             value: partnerMargin,
             color: AppColors.kpiShare,
           ),
-          if (returnOnCapital > 0) ...[
-            const SizedBox(height: 14),
-            _RatioBar(
-              label: 'Return on Capital',
-              value: returnOnCapital,
-              color: AppColors.primaryMid,
-            ),
-          ],
         ],
       ),
     );

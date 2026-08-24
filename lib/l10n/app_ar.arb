@@ -20,6 +20,8 @@
   "accessDeniedTitle": "الوصول مرفوض",
   "accessDeniedMessage": "حسابك غير مفعّل كشريك مالي.",
   "welcomeBack": "مرحباً بعودتك",
+  "demoWelcome": "تطبيق تجريبي",
+  "demoSubtitle": "تجربة مالية تجريبية",
   "logout": "تسجيل الخروج",
   "navDashboard": "لوحة التحكم",
   "navPnl": "الأرباح والخسائر",

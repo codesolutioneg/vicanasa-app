@@ -60,6 +60,14 @@ class DashboardChartsSection extends StatelessWidget {
                   style: AppTextStyles.headlineSm,
                 ),
               ),
+              Text(
+                'YTD',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textTertiary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 10),
               _legendDot(AppColors.kpiRevenue, 'Revenue'),
               const SizedBox(width: 12),
               _legendDot(AppColors.kpiExpense, 'Cost'),
@@ -117,23 +125,37 @@ class DashboardChartsSection extends StatelessWidget {
   }
 
   LineChartData _trendChart(List<Map<String, dynamic>> monthly) {
-    List<FlSpot> revSpots = [];
-    List<FlSpot> costSpots = [];
-    List<FlSpot> profitSpots = [];
+    final revSpots = <FlSpot>[];
+    final costSpots = <FlSpot>[];
+    final profitSpots = <FlSpot>[];
+    var maxY = 0.0;
     for (var i = 0; i < monthly.length; i++) {
       final m = monthly[i];
       final x = i.toDouble();
-      revSpots.add(FlSpot(x, _n(m['revenue'])));
-      final cost = _n(m['cost']);
-      final expense = _n(m['expense']);
-      costSpots.add(FlSpot(x, cost + expense));
-      profitSpots.add(FlSpot(x, _n(m['net_profit'])));
+      final rev = _n(m['revenue']);
+      final cost = _n(m['cost']) + _n(m['expense']);
+      final profit = _n(m['net_profit']);
+      revSpots.add(FlSpot(x, rev));
+      costSpots.add(FlSpot(x, cost));
+      profitSpots.add(FlSpot(x, profit));
+      maxY = [maxY, rev, cost, profit.abs()].reduce((a, b) => a > b ? a : b);
     }
 
+    // One month → no line segment; still show dots (Odoo needs ≥2 months for a trend).
+    final showDots = monthly.length <= 2;
+    final maxX = monthly.length <= 1 ? 1.0 : (monthly.length - 1).toDouble();
+    final chartMax = maxY <= 0 ? 1.0 : maxY * 1.1;
+    final yInterval = chartMax / 5;
+
     return LineChartData(
+      minX: 0,
+      maxX: maxX,
+      minY: 0,
+      maxY: chartMax,
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
+        horizontalInterval: yInterval,
         getDrawingHorizontalLine: (_) =>
             FlLine(color: AppColors.borderLight, strokeWidth: 1),
       ),
@@ -158,13 +180,42 @@ class DashboardChartsSection extends StatelessWidget {
             },
           ),
         ),
-        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 36,
+            interval: yInterval,
+            getTitlesWidget: (v, meta) {
+              if (v < 0) return const SizedBox.shrink();
+              // Skip top label clutter when it sits on maxY.
+              if ((v - meta.max).abs() < yInterval * 0.05) {
+                return const SizedBox.shrink();
+              }
+              return Text(
+                AppFormatters.compactMoney(v),
+                style: AppTextStyles.caption.copyWith(fontSize: 9),
+                textAlign: TextAlign.right,
+              );
+            },
+          ),
+        ),
       ),
       borderData: FlBorderData(show: false),
       lineBarsData: [
-        _line(revSpots, AppColors.kpiRevenue, fill: true),
-        _line(costSpots, AppColors.kpiExpense, width: 2, dashed: true),
-        _line(profitSpots, AppColors.kpiProfit, width: 2.5),
+        _line(revSpots, AppColors.kpiRevenue, fill: true, showDots: showDots),
+        _line(
+          costSpots,
+          AppColors.kpiExpense,
+          width: 2,
+          dashed: true,
+          showDots: showDots,
+        ),
+        _line(
+          profitSpots,
+          AppColors.kpiProfit,
+          width: 2.5,
+          showDots: showDots,
+        ),
       ],
     );
   }
@@ -175,14 +226,15 @@ class DashboardChartsSection extends StatelessWidget {
     bool fill = false,
     double width = 2,
     bool dashed = false,
+    bool showDots = false,
   }) {
     return LineChartBarData(
       spots: spots,
-      isCurved: true,
+      isCurved: spots.length > 2,
       color: color,
       barWidth: width,
       dashArray: dashed ? [4, 4] : null,
-      dotData: const FlDotData(show: false),
+      dotData: FlDotData(show: showDots),
       belowBarData: fill
           ? BarAreaData(show: true, color: color.withValues(alpha: 0.1))
           : BarAreaData(show: false),

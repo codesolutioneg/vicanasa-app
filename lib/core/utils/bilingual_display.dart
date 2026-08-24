@@ -18,6 +18,17 @@ abstract final class BilingualDisplay {
     return '$en - $ar';
   }
 
+  /// Odoo `Arabic - English` → English only (`April 2026`).
+  static String englishMonthLabel(String apiName) {
+    final sep = apiName.indexOf(' - ');
+    if (sep < 0) return apiName.trim();
+    final left = apiName.substring(0, sep).trim();
+    final right = apiName.substring(sep + 3).trim();
+    if (right.isEmpty) return left;
+    // API order is Arabic - English.
+    return right;
+  }
+
   /// Month option label with EN left / AR right (stable in RTL app).
   static Widget monthLabel(String apiName, {TextStyle? style}) {
     return Directionality(
