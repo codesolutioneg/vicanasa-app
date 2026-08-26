@@ -9,7 +9,6 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/liquid_glass.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../financial/domain/entities/partner_info.dart';
@@ -56,13 +55,6 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
       (AppRoutes.reports, l10n.navReports, CupertinoIcons.arrow_down_doc_fill),
     ];
 
-    final moreItems = [
-      (AppRoutes.growth, l10n.navGrowth, CupertinoIcons.arrow_up_right),
-      (AppRoutes.branches, l10n.navBranches, CupertinoIcons.building_2_fill),
-      (AppRoutes.distributions, l10n.navDistributions, CupertinoIcons.chart_pie_fill),
-      (AppRoutes.capital, l10n.navCapital, CupertinoIcons.money_dollar_circle_fill),
-    ];
-
     if (wide) {
       return Scaffold(
         body: Row(
@@ -70,7 +62,6 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
             _Sidebar(
               partner: partner,
               navItems: navItems,
-              moreItems: moreItems,
               current: loc,
               isReviewMode: isReview,
               onLogout: () => context.read<AuthCubit>().logout(),
@@ -104,37 +95,9 @@ class _FinancialShellPageState extends State<FinancialShellPage> {
       ),
       bottomNavigationBar: _MobileBottomNav(
         navItems: navItems,
-        moreItems: moreItems,
         currentLoc: loc,
         isReviewMode: isReview,
         onLogout: () => context.read<AuthCubit>().logout(),
-        onMore: () => _showMore(context, moreItems),
-      ),
-    );
-  }
-
-  void _showMore(BuildContext context, List<(String, String, IconData)> items) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => LiquidGlassModal(
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: items
-                .map(
-                  (e) => ListTile(
-                    leading: Icon(e.$3, color: AppColors.primaryMid),
-                    title: Text(e.$2),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      context.go(e.$1);
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-        ),
       ),
     );
   }
@@ -313,18 +276,14 @@ class _FilterBox extends StatelessWidget {
 class _MobileBottomNav extends StatelessWidget {
   const _MobileBottomNav({
     required this.navItems,
-    required this.moreItems,
     required this.currentLoc,
     required this.onLogout,
-    required this.onMore,
     this.isReviewMode = false,
   });
 
   final List<(String, String, IconData)> navItems;
-  final List<(String, String, IconData)> moreItems;
   final String currentLoc;
   final VoidCallback onLogout;
-  final VoidCallback onMore;
   final bool isReviewMode;
 
   @override
@@ -347,13 +306,6 @@ class _MobileBottomNav extends StatelessWidget {
                   onTap: () => context.go(e.$1),
                 ),
               ),
-              if (moreItems.isNotEmpty)
-                _NavBtn(
-                  icon: CupertinoIcons.ellipsis_circle,
-                  label: 'More',
-                  active: moreItems.any((e) => currentLoc.startsWith(e.$1)),
-                  onTap: onMore,
-                ),
               if (!isReviewMode)
                 _NavBtn(
                   icon: CupertinoIcons.square_arrow_left,
@@ -412,7 +364,6 @@ class _NavBtn extends StatelessWidget {
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.navItems,
-    required this.moreItems,
     required this.current,
     required this.onLogout,
     this.partner,
@@ -421,7 +372,6 @@ class _Sidebar extends StatelessWidget {
   });
 
   final List<(String, String, IconData)> navItems;
-  final List<(String, String, IconData)> moreItems;
   final String current;
   final VoidCallback onLogout;
   final PartnerInfo? partner;
@@ -507,28 +457,6 @@ class _Sidebar extends StatelessWidget {
                       popDrawer: inDrawer,
                     ),
                   ),
-                  if (moreItems.isNotEmpty) ...[
-                    const SizedBox(height: AppDimensions.spaceMd),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: AppDimensions.spaceSm,
-                        bottom: AppDimensions.spaceXs,
-                      ),
-                      child: Text(
-                        l10n.navSectionMore,
-                        style: AppTextStyles.kpiLabel,
-                      ),
-                    ),
-                    ...moreItems.map(
-                      (e) => _NavTile(
-                        route: e.$1,
-                        label: e.$2,
-                        icon: e.$3,
-                        current: current,
-                        popDrawer: inDrawer,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

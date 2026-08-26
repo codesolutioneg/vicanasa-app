@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../di/injection.dart';
 import '../network/connectivity_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'no_internet_screen.dart';
 
 /// Blocks the app UI when offline; shows [NoInternetScreen] until connection returns.
@@ -27,21 +28,40 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
   void initState() {
     super.initState();
     _connectivity = sl<ConnectivityService>();
-    _refreshStatus();
+    unawaited(_refreshStatus());
     _subscription = _connectivity.onConnectivityChanged.listen((_) {
-      _refreshStatus();
+      unawaited(_refreshStatus());
     });
   }
 
   Future<void> _refreshStatus() async {
     final online = await _connectivity.isConnected;
-    if (mounted) setState(() => _isOnline = online);
+    if (!mounted) return;
+    setState(() => _isOnline = online);
   }
 
   Future<void> _retry() async {
+    if (_checking) return;
     setState(() => _checking = true);
-    await _refreshStatus();
-    if (mounted) setState(() => _checking = false);
+    try {
+      await _refreshStatus();
+      if (!mounted) return;
+      if (!_isOnline) {
+        final l10n = AppLocalizations.of(context);
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        messenger?.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.noInternetMessage ??
+                  'Please check your Wi-Fi or mobile data and try again.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
   }
 
   @override
@@ -58,7 +78,7 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
         widget.child,
         if (!_isOnline)
           NoInternetScreen(
-            onRetry: _retry,
+            onRetry: () => unawaited(_retry()),
             isRetrying: _checking,
           ),
       ],

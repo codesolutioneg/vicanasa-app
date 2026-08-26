@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../cubit/filter_cubit.dart';
+import 'filter_year_chips.dart';
 
-/// Mobile From/To date filter — mirrors Odoo portal `#dateFrom` / `#dateTo`.
-/// Ranges are capped to [FilterState.closedEnd] and closed months only.
+/// Mobile From/To date filter — year first, then dates in closed months only.
 class CompactDateRangeFilter extends StatelessWidget {
   const CompactDateRangeFilter({super.key});
 
@@ -18,22 +18,29 @@ class CompactDateRangeFilter extends StatelessWidget {
     final state = context.watch<FilterCubit>().state;
     final fmt = DateFormat('MM/dd/yyyy');
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: _DateChip(
-            label: l10n.dateFrom,
-            value: fmt.format(state.dateFrom),
-            onTap: () => _pick(context, isFrom: true),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _DateChip(
-            label: l10n.dateTo,
-            value: fmt.format(state.dateTo),
-            onTap: () => _pick(context, isFrom: false),
-          ),
+        const FilterYearChips(),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _DateChip(
+                label: l10n.dateFrom,
+                value: fmt.format(state.dateFrom),
+                onTap: () => _pick(context, isFrom: true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DateChip(
+                label: l10n.dateTo,
+                value: fmt.format(state.dateTo),
+                onTap: () => _pick(context, isFrom: false),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -42,16 +49,22 @@ class CompactDateRangeFilter extends StatelessWidget {
   Future<void> _pick(BuildContext context, {required bool isFrom}) async {
     final cubit = context.read<FilterCubit>();
     final filter = cubit.state;
-    final lastDate = filter.maxSelectableDate;
+    final year = filter.filterYear ??
+        filter.availableFilterYears.firstOrNull ??
+        filter.dateFrom.year;
+    final bounds = filter.pickerBoundsForYear(year);
+    final firstDate = bounds.$1;
+    final lastDate = bounds.$2;
     var initial = isFrom ? filter.dateFrom : filter.dateTo;
+    if (initial.isBefore(firstDate)) initial = firstDate;
     if (initial.isAfter(lastDate)) initial = lastDate;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(2020),
+      firstDate: firstDate,
       lastDate: lastDate,
-      helpText: isFrom ? 'Start date' : 'End date',
+      helpText: isFrom ? 'Start date ($year)' : 'End date ($year)',
     );
     if (picked == null || !context.mounted) return;
     if (!filter.isMonthSelectable(picked.year, picked.month)) {

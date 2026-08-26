@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../cubit/filter_cubit.dart';
+import 'filter_year_chips.dart';
 
 class DateFilterBar extends StatefulWidget {
   const DateFilterBar({super.key});
@@ -27,13 +28,19 @@ class _DateFilterBarState extends State<DateFilterBar> {
 
   Future<void> _pickDate(bool isFrom) async {
     final filter = context.read<FilterCubit>().state;
-    final lastDate = filter.maxSelectableDate;
+    final year = filter.filterYear ??
+        filter.availableFilterYears.firstOrNull ??
+        filter.dateFrom.year;
+    final bounds = filter.pickerBoundsForYear(year);
+    final firstDate = bounds.$1;
+    final lastDate = bounds.$2;
     var initial = isFrom ? _draftFrom : _draftTo;
+    if (initial.isBefore(firstDate)) initial = firstDate;
     if (initial.isAfter(lastDate)) initial = lastDate;
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(2020),
+      firstDate: firstDate,
       lastDate: lastDate,
     );
     if (picked == null) return;
@@ -47,7 +54,7 @@ class _DateFilterBarState extends State<DateFilterBar> {
         if (_draftFrom.isAfter(_draftTo)) _draftFrom = _draftTo;
       }
       if (_draftTo.isAfter(lastDate)) _draftTo = lastDate;
-      if (_draftFrom.isAfter(lastDate)) _draftFrom = lastDate;
+      if (_draftFrom.isBefore(firstDate)) _draftFrom = firstDate;
     });
   }
 
@@ -75,6 +82,8 @@ class _DateFilterBarState extends State<DateFilterBar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const FilterYearChips(),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,

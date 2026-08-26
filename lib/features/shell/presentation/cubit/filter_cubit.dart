@@ -1,77 +1,9 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/closed_month_option.dart';
+import 'filter_state.dart';
 
-class FilterState extends Equatable {
-  const FilterState({
-    this.analyticId,
-    required this.dateFrom,
-    required this.dateTo,
-    this.closedEnd,
-    this.periodDisplay,
-    this.closedMonths = const [],
-    this.selectedMonthKeys = const [],
-    this.periodPreset = 'YTD',
-  });
-
-  final int? analyticId;
-  final DateTime dateFrom;
-  final DateTime dateTo;
-  final DateTime? closedEnd;
-  final String? periodDisplay;
-  final List<ClosedMonthOption> closedMonths;
-  final List<String> selectedMonthKeys;
-  final String periodPreset;
-
-  String get dateFromStr =>
-      '${dateFrom.year}-${dateFrom.month.toString().padLeft(2, '0')}-${dateFrom.day.toString().padLeft(2, '0')}';
-
-  String get dateToStr =>
-      '${dateTo.year}-${dateTo.month.toString().padLeft(2, '0')}-${dateTo.day.toString().padLeft(2, '0')}';
-
-  DateTime get maxSelectableDate => closedEnd ?? DateTime.now();
-
-  bool isMonthSelectable(int year, int month) {
-    if (closedMonths.isEmpty) return true;
-    return closedMonths.any((m) => m.year == year && m.month == month);
-  }
-
-  FilterState copyWith({
-    int? analyticId,
-    bool clearAnalytic = false,
-    DateTime? dateFrom,
-    DateTime? dateTo,
-    DateTime? closedEnd,
-    String? periodDisplay,
-    List<ClosedMonthOption>? closedMonths,
-    List<String>? selectedMonthKeys,
-    String? periodPreset,
-  }) {
-    return FilterState(
-      analyticId: clearAnalytic ? null : (analyticId ?? this.analyticId),
-      dateFrom: dateFrom ?? this.dateFrom,
-      dateTo: dateTo ?? this.dateTo,
-      closedEnd: closedEnd ?? this.closedEnd,
-      periodDisplay: periodDisplay ?? this.periodDisplay,
-      closedMonths: closedMonths ?? this.closedMonths,
-      selectedMonthKeys: selectedMonthKeys ?? this.selectedMonthKeys,
-      periodPreset: periodPreset ?? this.periodPreset,
-    );
-  }
-
-  @override
-  List<Object?> get props => [
-        analyticId,
-        dateFrom,
-        dateTo,
-        closedEnd,
-        periodDisplay,
-        closedMonths,
-        selectedMonthKeys,
-        periodPreset,
-      ];
-}
+export 'filter_state.dart';
 
 /// Shared branch and date range across financial screens.
 class FilterCubit extends Cubit<FilterState> {
@@ -80,16 +12,19 @@ class FilterCubit extends Cubit<FilterState> {
           dateFrom: _calendarLastMonthStart(),
           dateTo: _calendarLastMonthEnd(),
           periodPreset: 'LAST',
+          filterYear: DateTime.now().year,
         ));
 
   static DateTime _calendarLastMonthStart() {
-    final firstThisMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final firstThisMonth =
+        DateTime(DateTime.now().year, DateTime.now().month, 1);
     final lastMonthEnd = firstThisMonth.subtract(const Duration(days: 1));
     return DateTime(lastMonthEnd.year, lastMonthEnd.month, 1);
   }
 
   static DateTime _calendarLastMonthEnd() {
-    final firstThisMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final firstThisMonth =
+        DateTime(DateTime.now().year, DateTime.now().month, 1);
     return firstThisMonth.subtract(const Duration(days: 1));
   }
 
@@ -105,6 +40,33 @@ class FilterCubit extends Cubit<FilterState> {
       dateTo: capped.$2,
       periodPreset: 'CUSTOM',
       selectedMonthKeys: const [],
+      filterYear: capped.$1.year,
+    ));
+  }
+
+  /// Switch shell filter year and snap range to that year's last closed month.
+  void setFilterYear(int year) {
+    final months = state.closedMonthsForYear(year);
+    if (months.isEmpty) {
+      final bounds = state.pickerBoundsForYear(year);
+      emit(state.copyWith(
+        filterYear: year,
+        dateFrom: bounds.$1,
+        dateTo: bounds.$2,
+        periodPreset: 'CUSTOM',
+        selectedMonthKeys: const [],
+      ));
+      return;
+    }
+    final sorted = List<ClosedMonthOption>.from(months)
+      ..sort((a, b) => b.month.compareTo(a.month));
+    final last = sorted.first;
+    emit(state.copyWith(
+      filterYear: year,
+      dateFrom: last.dateFrom,
+      dateTo: last.dateTo,
+      periodPreset: last.key,
+      selectedMonthKeys: [last.key],
     ));
   }
 
@@ -112,7 +74,10 @@ class FilterCubit extends Cubit<FilterState> {
     final closedMonths = ClosedMonthOption.listFromPeriodInfo(periodInfo);
     if (periodInfo['has_closed_period'] != true) {
       if (closedMonths.isNotEmpty) {
-        emit(state.copyWith(closedMonths: closedMonths));
+        emit(state.copyWith(
+          closedMonths: closedMonths,
+          filterYear: closedMonths.first.year,
+        ));
       }
       return;
     }
@@ -120,22 +85,24 @@ class FilterCubit extends Cubit<FilterState> {
     if (closedStr == null) return;
     final closed = DateTime.parse(closedStr);
 
-    // Default range: full last closed month (From = 1st of that month).
     final DateTime from;
     final DateTime to;
     final List<String> selectedKeys;
     final String preset;
+    final int year;
     if (closedMonths.isNotEmpty) {
       final lastClosed = closedMonths.first;
       from = lastClosed.dateFrom;
       to = lastClosed.dateTo.isAfter(closed) ? closed : lastClosed.dateTo;
       selectedKeys = [lastClosed.key];
       preset = lastClosed.key;
+      year = lastClosed.year;
     } else {
       from = DateTime(closed.year, closed.month, 1);
       to = closed;
       selectedKeys = const [];
       preset = 'LAST';
+      year = closed.year;
     }
 
     emit(state.copyWith(
@@ -146,16 +113,33 @@ class FilterCubit extends Cubit<FilterState> {
       closedMonths: closedMonths,
       periodPreset: preset,
       selectedMonthKeys: selectedKeys,
+      filterYear: year,
     ));
   }
 
   void setYtd() {
+    final year =
+        state.filterYear ?? state.closedEnd?.year ?? DateTime.now().year;
+    final months = state.closedMonthsForYear(year);
+    if (months.isNotEmpty) {
+      final sorted = List<ClosedMonthOption>.from(months)
+        ..sort((a, b) => a.month.compareTo(b.month));
+      emit(state.copyWith(
+        dateFrom: sorted.first.dateFrom,
+        dateTo: sorted.last.dateTo,
+        periodPreset: 'YTD',
+        selectedMonthKeys: sorted.map((m) => m.key).toList(),
+        filterYear: year,
+      ));
+      return;
+    }
     final end = state.closedEnd ?? DateTime.now();
     emit(state.copyWith(
-      dateFrom: DateTime(end.year, 1, 1),
-      dateTo: end,
+      dateFrom: DateTime(year, 1, 1),
+      dateTo: end.year == year ? end : DateTime(year, 12, 31),
       periodPreset: 'YTD',
-      selectedMonthKeys: state.closedMonths.map((m) => m.key).toList(),
+      selectedMonthKeys: const [],
+      filterYear: year,
     ));
   }
 
@@ -165,6 +149,7 @@ class FilterCubit extends Cubit<FilterState> {
       dateTo: month.dateTo,
       periodPreset: month.key,
       selectedMonthKeys: [month.key],
+      filterYear: month.year,
     ));
   }
 
@@ -180,19 +165,18 @@ class FilterCubit extends Cubit<FilterState> {
       dateTo: sorted.last.dateTo,
       periodPreset: 'MULTI',
       selectedMonthKeys: sorted.map((m) => m.key).toList(),
+      filterYear: sorted.last.year,
     ));
   }
 
-  /// Legacy presets — capped to last closed month when applicable.
   void setMtd() {
     final end = state.closedEnd;
     final now = DateTime.now();
     if (end != null) {
       if (now.year > end.year ||
           (now.year == end.year && now.month > end.month)) {
-        final last = state.closedMonths.isNotEmpty
-            ? state.closedMonths.first
-            : null;
+        final last =
+            state.closedMonths.isNotEmpty ? state.closedMonths.first : null;
         if (last != null) {
           setClosedMonth(last);
           return;
@@ -201,6 +185,7 @@ class FilterCubit extends Cubit<FilterState> {
           dateFrom: DateTime(end.year, end.month, 1),
           dateTo: end,
           periodPreset: 'MTD',
+          filterYear: end.year,
         ));
         return;
       }
@@ -210,11 +195,11 @@ class FilterCubit extends Cubit<FilterState> {
       dateTo: _capDate(now),
       periodPreset: 'MTD',
       selectedMonthKeys: const [],
+      filterYear: now.year,
     ));
   }
 
   void setLastMonth() {
-    // Newest closed month first in [closedMonths].
     if (state.closedMonths.isNotEmpty) {
       setClosedMonth(state.closedMonths.first);
       return;
@@ -226,6 +211,7 @@ class FilterCubit extends Cubit<FilterState> {
       dateTo: _capDate(to),
       periodPreset: 'LAST',
       selectedMonthKeys: const [],
+      filterYear: from.year,
     ));
   }
 
