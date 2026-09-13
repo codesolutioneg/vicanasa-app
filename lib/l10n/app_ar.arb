@@ -16,6 +16,8 @@
   "loginEmail": "البريد الإلكتروني",
   "loginPassword": "كلمة المرور",
   "loginButton": "دخول",
+  "signingInTitle": "جاري تسجيل الدخول…",
+  "signingInSubtitle": "يرجى الانتظار حتى يتم الدخول.",
   "forgotPassword": "نسيت كلمة المرور؟",
   "forgotPasswordTitle": "إعادة تعيين كلمة المرور",
   "forgotPasswordSubtitle": "أدخل بريدك الإلكتروني وسنرسل كلمة مرور جديدة إلى صندوق الوارد.",

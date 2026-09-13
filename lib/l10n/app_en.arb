@@ -16,6 +16,8 @@
   "loginEmail": "Email",
   "loginPassword": "Password",
   "loginButton": "Sign In",
+  "signingInTitle": "Signing in…",
+  "signingInSubtitle": "Please wait while we sign you in.",
   "forgotPassword": "Forgot password?",
   "forgotPasswordTitle": "Reset password",
   "forgotPasswordSubtitle": "Enter your email and we will send a new password to your inbox.",

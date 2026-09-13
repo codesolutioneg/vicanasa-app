@@ -71,9 +71,26 @@ class FirebaseMessagingService {
   final Set<String> _topics = <String>{};
   String? _emailTopic;
   String? _pendingLoginEmail;
+  String? _token;
   bool _enabled = false;
 
   bool get isEnabled => _enabled;
+
+  Future<String> getFcmToken() async {
+    if (_token != null && _token!.isNotEmpty && _token != '-') {
+      return _token!;
+    }
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        _token = token;
+        return token;
+      }
+    } catch (e, st) {
+      _log.w('FCM token fetch failed', error: e, stackTrace: st);
+    }
+    return '';
+  }
 
   /// Logs the APNs and FCM tokens. On iOS the APNs token confirms that the
   /// device registered with Apple — without it, FCM cannot deliver push.
@@ -95,9 +112,11 @@ class FirebaseMessagingService {
       }
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
+        _token = token;
         _log.i('FCM token: $token');
       } else {
         _log.w('FCM token: not available yet');
+        unawaited(_retryTokenLater());
       }
     } catch (e, st) {
       _log.w('FCM token fetch failed', error: e, stackTrace: st);
@@ -130,13 +149,13 @@ class FirebaseMessagingService {
       );
       FirebaseMessaging.instance.onTokenRefresh.listen(_onTokenRefresh);
       _enabled = true;
-      await _subscribe(Env.fcmTopicDevelopment);
+      await _subscribeBroadcastTopics();
       if (_pendingLoginEmail != null) {
         final email = _pendingLoginEmail!;
         _pendingLoginEmail = null;
         await subscribeUserTopics(email);
       }
-      _log.i('FCM ready (topic: ${Env.fcmTopicDevelopment})');
+      _log.i('FCM ready (topics: ${Env.fcmTopicDevelopment}, ${Env.fcmTopicAllUsers}, ${Env.fcmTopicAllDevices})');
     } catch (e, st) {
       _enabled = false;
       _log.w('FCM init skipped — app continues without push', error: e, stackTrace: st);
@@ -186,11 +205,24 @@ class FirebaseMessagingService {
       _pendingLoginEmail = null;
       return;
     }
-    await _unsubscribe(Env.fcmTopicAllUsers);
     if (_emailTopic != null) {
       await _unsubscribe(_emailTopic!);
       _emailTopic = null;
     }
+  }
+
+  Future<void> _subscribeBroadcastTopics() async {
+    await _subscribe(Env.fcmTopicDevelopment);
+    await _subscribe(Env.fcmTopicAllUsers);
+    await _subscribe(Env.fcmTopicAllDevices);
+    await _subscribe(Env.fcmTopicAllDevicesLower);
+  }
+
+  Future<void> _retryTokenLater() async {
+    await Future<void>.delayed(const Duration(seconds: 5));
+    if (!_enabled) return;
+    await logFcmToken();
+    await _subscribeBroadcastTopics();
   }
 
   Future<void> subscribeToTopic(String topic) async {
@@ -213,8 +245,9 @@ class FirebaseMessagingService {
   /// registered, so the server never records it. Re-subscribing on token
   /// refresh guarantees active topics stick once registration completes.
   Future<void> _onTokenRefresh(String token) async {
-    if (_topics.isEmpty) return;
+    _token = token;
     _log.i('FCM token refreshed — re-subscribing to ${_topics.length} topic(s)');
+    await _subscribeBroadcastTopics();
     for (final topic in _topics.toList()) {
       await _subscribe(topic);
     }
@@ -244,7 +277,11 @@ class FirebaseMessagingService {
       }
       return;
     }
-    final settings = await FirebaseMessaging.instance.requestPermission();
+    final settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     _log.i('Notification permission: ${settings.authorizationStatus.name}');
   }
 

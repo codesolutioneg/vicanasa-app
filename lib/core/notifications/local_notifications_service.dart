@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../constants/constants.dart';
 import 'navigation_service.dart';
 
 class LocalNotificationsService {
@@ -14,9 +15,16 @@ class LocalNotificationsService {
   int _id = 0;
 
   static const _androidChannel = AndroidNotificationChannel(
+    AppConstants.fcmAndroidChannelId,
+    'High Importance Notifications',
+    description: 'Financial portal push notifications',
+    importance: Importance.max,
+  );
+
+  static const _legacyChannel = AndroidNotificationChannel(
     'vacansa_channel',
     'Vicanza Notifications',
-    description: 'Financial portal push notifications',
+    description: 'Legacy Vicanza notification channel',
     importance: Importance.max,
   );
 
@@ -26,7 +34,11 @@ class LocalNotificationsService {
     await _plugin.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        ),
       ),
       onDidReceiveNotificationResponse: (r) {
         NavigationService.handleFCMNotification(
@@ -42,10 +54,10 @@ class LocalNotificationsService {
         isFromKilledState: true,
       );
     }
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_androidChannel);
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(_androidChannel);
+    await android?.createNotificationChannel(_legacyChannel);
     _initialized = true;
   }
 
@@ -74,8 +86,13 @@ class LocalNotificationsService {
           channelDescription: _androidChannel.description,
           importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       ),
       payload: payload,
     );

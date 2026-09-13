@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -9,8 +8,6 @@ import 'package:logger/logger.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
-import 'core/firebase/firebase_bootstrap.dart';
-import 'core/notifications/firebase_messaging_service.dart';
 import 'core/startup/app_startup.dart';
 
 Future<void> main() async {
@@ -18,14 +15,6 @@ Future<void> main() async {
     WidgetsFlutterBinding.ensureInitialized();
     await dotenv.load(fileName: '.env');
     await configureDependencies();
-    if (!kIsWeb) {
-      try {
-        await FirebaseBootstrap.initialize();
-        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      } catch (e, st) {
-        Logger().w('FCM background handler skipped', error: e, stackTrace: st);
-      }
-    }
 
     FlutterError.onError = (details) {
       Logger().e(

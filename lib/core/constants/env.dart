@@ -8,6 +8,8 @@ abstract final class Env {
   static const String odooDb = AppConstants.odooDb;
   static const String fcmTopicAllUsers = AppConstants.fcmTopicAllUsers;
   static const String fcmTopicDevelopment = AppConstants.fcmTopicDevelopment;
+  static const String fcmTopicAllDevices = AppConstants.fcmTopicAllDevices;
+  static const String fcmTopicAllDevicesLower = AppConstants.fcmTopicAllDevicesLower;
 
   static String get mobileVersionsBaseUrl =>
       dotenv.env['MOBILE_VERSIONS_BASE_URL']?.trim().isNotEmpty == true

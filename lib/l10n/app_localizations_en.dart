@@ -60,6 +60,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginButton => 'Sign In';
 
   @override
+  String get signingInTitle => 'Signing in…';
+
+  @override
+  String get signingInSubtitle => 'Please wait while we sign you in.';
+
+  @override
   String get forgotPassword => 'Forgot password?';
 
   @override

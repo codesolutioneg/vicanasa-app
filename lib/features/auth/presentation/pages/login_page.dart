@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/powered_by_code_solution.dart';
@@ -13,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../financial/domain/repositories/financial_repository.dart';
 import '../../../shell/presentation/cubit/filter_cubit.dart';
 import '../cubit/auth_cubit.dart';
+import '../widgets/waiting_clock_overlay.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -25,8 +26,7 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
-
-  static const _logoAsset = 'assets/images/vicanza_logo.png';
+  bool _signingIn = false;
 
   @override
   void dispose() {
@@ -38,188 +38,173 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 720;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.bgSecondary,
       body: SafeArea(
         child: Directionality(
           textDirection: TextDirection.ltr,
-          child: Column(
-            children: [
-              Expanded(
-                child: wide ? _buildSplitLayout() : _buildStackedLayout(),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 8, 24, 16),
-                child: Center(
-                  child: PoweredByCodeSolution(compact: true),
+          child: BlocConsumer<AuthCubit, AuthState>(
+            listenWhen: (prev, curr) =>
+                curr is AuthError ||
+                curr is AuthAuthenticated ||
+                curr is AuthAccessDenied ||
+                curr is AuthUnauthenticated,
+            listener: _onAuthState,
+            builder: (context, state) {
+              final loading = _signingIn;
+              return PopScope(
+                canPop: !loading,
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        Expanded(
+                          child: wide
+                              ? _buildSplitLayout(loading: loading)
+                              : _buildStackedLayout(loading: loading),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(24, 8, 24, 16),
+                          child: Center(
+                            child: PoweredByCodeSolution(compact: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (loading)
+                      WaitingClockOverlay(
+                        title: l10n.signingInTitle,
+                        subtitle: l10n.signingInSubtitle,
+                      ),
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSplitLayout() {
+  Future<void> _onAuthState(BuildContext context, AuthState state) async {
+    if (_signingIn &&
+        (state is AuthError ||
+            state is AuthAuthenticated ||
+            state is AuthAccessDenied ||
+            state is AuthUnauthenticated)) {
+      if (mounted) setState(() => _signingIn = false);
+    }
+    if (state is AuthError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.message)),
+      );
+      return;
+    }
+    if (state is AuthAccessDenied) {
+      context.go(AppRoutes.accessDenied);
+      return;
+    }
+    if (state is AuthAuthenticated) {
+      final period = await sl<FinancialRepository>().getPeriodInfo();
+      if (!context.mounted) return;
+      period.fold((_) {}, (data) {
+        context.read<FilterCubit>().applyPeriodCap(data);
+      });
+      if (!context.mounted) return;
+      context.go(AppRoutes.dashboard);
+    }
+  }
+
+  Widget _buildSplitLayout({required bool loading}) {
     return Row(
       children: [
-        Expanded(child: _buildLoginPanel(compact: false)),
+        Expanded(child: _buildLoginPanel(compact: false, loading: loading)),
         const VerticalDivider(width: 1, color: AppColors.borderLight),
         const Expanded(child: _LogoPanel()),
       ],
     );
   }
 
-  Widget _buildStackedLayout() {
+  Widget _buildStackedLayout({required bool loading}) {
     final l10n = AppLocalizations.of(context)!;
     return ColoredBox(
-      color: AppColors.bgPrimary,
+      color: AppColors.bgSecondary,
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: BlocConsumer<AuthCubit, AuthState>(
-              listenWhen: (prev, curr) =>
-                  curr is AuthError ||
-                  curr is AuthAuthenticated ||
-                  curr is AuthAccessDenied,
-              listener: (context, state) async {
-                if (state is AuthError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.message)),
-                  );
-                  return;
-                }
-                if (state is AuthAccessDenied) {
-                  context.go(AppRoutes.accessDenied);
-                  return;
-                }
-                if (state is AuthAuthenticated) {
-                  final period =
-                      await sl<FinancialRepository>().getPeriodInfo();
-                  if (!context.mounted) return;
-                  period.fold((_) {}, (data) {
-                    context.read<FilterCubit>().applyPeriodCap(data);
-                  });
-                  if (!context.mounted) return;
-                  context.go(AppRoutes.dashboard);
-                }
-              },
-              builder: (context, state) {
-                final loading = state is AuthLoading;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Blue gradient icon box
-                    Center(
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.chart_bar_alt_fill,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Center(child: _BrandLogo()),
+                const SizedBox(height: 20),
+                Text(
+                  l10n.loginTitle,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.headlineLg.copyWith(fontSize: 26),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.loginSubtitle,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMd
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 32),
+                Text(l10n.loginEmail,
+                    style: AppTextStyles.labelLg
+                        .copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _email,
+                  enabled: !loading,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration:
+                      const InputDecoration(hintText: 'Enter your email'),
+                ),
+                const SizedBox(height: 16),
+                Text(l10n.loginPassword,
+                    style: AppTextStyles.labelLg
+                        .copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _password,
+                  enabled: !loading,
+                  obscureText: _obscure,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscure
+                            ? CupertinoIcons.eye_slash
+                            : CupertinoIcons.eye,
+                        color: AppColors.textMuted,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      l10n.loginTitle,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.headlineLg.copyWith(fontSize: 26),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.loginSubtitle,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyMd
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(l10n.loginEmail,
-                        style: AppTextStyles.labelLg
-                            .copyWith(color: AppColors.textSecondary)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                          hintText: 'Enter your email'),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(l10n.loginPassword,
-                        style: AppTextStyles.labelLg
-                            .copyWith(color: AppColors.textSecondary)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _password,
-                      obscureText: _obscure,
-                      decoration: InputDecoration(
-                        hintText: 'Enter your password',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscure
-                                ? CupertinoIcons.eye_slash
-                                : CupertinoIcons.eye,
-                            color: AppColors.textMuted,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: TextButton(
-                        onPressed: loading
-                            ? null
-                            : () => context.push(AppRoutes.forgotPassword),
-                        child: Text(l10n.forgotPassword),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
                       onPressed: loading
                           ? null
-                          : () {
-                              final email = _email.text.trim();
-                              final password = _password.text;
-                              if (email.isEmpty || password.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(l10n.loginError)),
-                                );
-                                return;
-                              }
-                              context
-                                  .read<AuthCubit>()
-                                  .login(email, password);
-                            },
-                      child: loading
-                          ? CustomShimmer(
-                              baseColor: Colors.white.withValues(alpha: 0.25),
-                              highlightColor: Colors.white.withValues(alpha: 0.45),
-                              child: Container(
-                                height: 16,
-                                width: 120,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            )
-                          : Text(l10n.loginButton),
+                          : () => setState(() => _obscure = !_obscure),
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: loading
+                        ? null
+                        : () => context.push(AppRoutes.forgotPassword),
+                    child: Text(l10n.forgotPassword),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: loading ? null : _submitLogin,
+                  child: Text(l10n.loginButton),
+                ),
+              ],
             ),
           ),
         ),
@@ -227,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLoginPanel({required bool compact}) {
+  Widget _buildLoginPanel({required bool compact, required bool loading}) {
     final l10n = AppLocalizations.of(context)!;
 
     return ColoredBox(
@@ -240,211 +225,129 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: BlocConsumer<AuthCubit, AuthState>(
-              listenWhen: (prev, curr) =>
-                  curr is AuthError ||
-                  curr is AuthAuthenticated ||
-                  curr is AuthAccessDenied,
-              listener: (context, state) async {
-                if (state is AuthError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.message)),
-                  );
-                  return;
-                }
-                if (state is AuthAccessDenied) {
-                  context.go(AppRoutes.accessDenied);
-                  return;
-                }
-                if (state is AuthAuthenticated) {
-                  final period = await sl<FinancialRepository>().getPeriodInfo();
-                  if (!context.mounted) return;
-                  period.fold((_) {}, (data) {
-                    context.read<FilterCubit>().applyPeriodCap(data);
-                  });
-                  if (!context.mounted) return;
-                  context.go(AppRoutes.dashboard);
-                }
-              },
-              builder: (context, state) {
-                final loading = state is AuthLoading;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!compact) ...[
-                      const Center(child: _BrandLogo.form()),
-                      const SizedBox(height: 28),
-                    ],
-                    Text(
-                      l10n.loginTitle,
-                      style: AppTextStyles.headlineLg.copyWith(fontSize: 28),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(l10n.loginSubtitle, style: AppTextStyles.bodyMd),
-                    const SizedBox(height: 32),
-                    Text(
-                      l10n.loginEmail,
-                      style: AppTextStyles.labelLg.copyWith(
-                        color: AppColors.textSecondary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!compact) ...[
+                  const Center(child: _BrandLogo()),
+                  const SizedBox(height: 28),
+                ],
+                Text(
+                  l10n.loginTitle,
+                  style: AppTextStyles.headlineLg.copyWith(fontSize: 28),
+                ),
+                const SizedBox(height: 8),
+                Text(l10n.loginSubtitle, style: AppTextStyles.bodyMd),
+                const SizedBox(height: 32),
+                Text(
+                  l10n.loginEmail,
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _email,
+                  enabled: !loading,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter your email',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.loginPassword,
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _password,
+                  enabled: !loading,
+                  obscureText: _obscure,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscure
+                            ? CupertinoIcons.eye_slash
+                            : CupertinoIcons.eye,
+                        color: AppColors.textMuted,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your email',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.loginPassword,
-                      style: AppTextStyles.labelLg.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _password,
-                      obscureText: _obscure,
-                      decoration: InputDecoration(
-                        hintText: 'Enter your password',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscure
-                                ? CupertinoIcons.eye_slash
-                                : CupertinoIcons.eye,
-                            color: AppColors.textMuted,
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: TextButton(
-                        onPressed: loading
-                            ? null
-                            : () => context.push(AppRoutes.forgotPassword),
-                        child: Text(l10n.forgotPassword),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
                       onPressed: loading
                           ? null
-                          : () {
-                              final email = _email.text.trim();
-                              final password = _password.text;
-                              if (email.isEmpty || password.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(l10n.loginError)),
-                                );
-                                return;
-                              }
-                              context.read<AuthCubit>().login(email, password);
-                            },
-                      child: loading
-                          ? CustomShimmer(
-                              baseColor: Colors.white.withValues(alpha: 0.25),
-                              highlightColor: Colors.white.withValues(alpha: 0.45),
-                              child: Container(
-                                height: 16,
-                                width: 120,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            )
-                          : Text(l10n.loginButton),
+                          : () => setState(() => _obscure = !_obscure),
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: loading
+                        ? null
+                        : () => context.push(AppRoutes.forgotPassword),
+                    child: Text(l10n.forgotPassword),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: loading ? null : _submitLogin,
+                  child: Text(l10n.loginButton),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  void _submitLogin() {
+    final l10n = AppLocalizations.of(context)!;
+    final email = _email.text.trim();
+    final password = _password.text;
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.loginError)),
+      );
+      return;
+    }
+    setState(() => _signingIn = true);
+    context.read<AuthCubit>().login(email, password);
+  }
 }
 
-/// PNG has large top whitespace — crop to the wordmark via [Align.heightFactor].
+/// Centered Vicanza mark — same asset as splash, no crop (crop shifted it right).
 class _BrandLogo extends StatelessWidget {
-  const _BrandLogo.form()
-      : maxWidth = 260,
-        viewportHeight = 72,
-        visibleFraction = 0.36;
-
-  const _BrandLogo.hero({required this.maxWidth})
-      : viewportHeight = 120,
-        visibleFraction = 0.36;
-
-  const _BrandLogo.compact()
-      : maxWidth = 300,
-        viewportHeight = 88,
-        visibleFraction = 0.36;
-
-  final double maxWidth;
-  final double viewportHeight;
-  final double visibleFraction;
+  const _BrandLogo();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: maxWidth,
-      height: viewportHeight,
-      child: ClipRect(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          heightFactor: visibleFraction,
-          child: Image.asset(
-            _LoginPageState._logoAsset,
-            width: maxWidth,
-            fit: BoxFit.fitWidth,
-            alignment: Alignment.bottomCenter,
-            semanticLabel: 'Vicanza',
-            filterQuality: FilterQuality.high,
-            errorBuilder: (context, error, stackTrace) => Text(
-              'VICANZA',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.headlineLg.copyWith(
-                fontSize: viewportHeight * 0.55,
-                letterSpacing: 8,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return Image.asset(
+      AppAssets.appIcon,
+      height: 96,
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
+      semanticLabel: 'Vicanza',
+      filterQuality: FilterQuality.high,
     );
   }
 }
 
 class _LogoPanel extends StatelessWidget {
-  const _LogoPanel({this.compact = false});
-
-  final bool compact;
+  const _LogoPanel();
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.bgPrimary,
+    return const ColoredBox(
+      color: AppColors.bgSecondary,
       child: SizedBox.expand(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (compact) {
-                  return const _BrandLogo.compact();
-                }
-                final w = (constraints.maxWidth * 0.82).clamp(320.0, 520.0);
-                return _BrandLogo.hero(maxWidth: w);
-              },
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: _BrandLogo(),
           ),
         ),
       ),

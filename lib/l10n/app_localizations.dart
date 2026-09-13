@@ -194,6 +194,18 @@ abstract class AppLocalizations {
   /// **'Sign In'**
   String get loginButton;
 
+  /// No description provided for @signingInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in…'**
+  String get signingInTitle;
+
+  /// No description provided for @signingInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait while we sign you in.'**
+  String get signingInSubtitle;
+
   /// No description provided for @forgotPassword.
   ///
   /// In en, this message translates to:

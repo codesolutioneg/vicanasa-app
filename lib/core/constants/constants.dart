@@ -13,6 +13,13 @@ abstract final class AppConstants {
 
   static const String fcmTopicDevelopment = 'development';
 
+  /// Broadcast topics used by the working Hesham Tarek FCM sender.
+  static const String fcmTopicAllDevices = 'allDevices';
+
+  static const String fcmTopicAllDevicesLower = 'alldevices';
+
+  static const String fcmAndroidChannelId = 'high_importance_channel';
+
   static const String androidApplicationId = 'com.codesolution.vacansa';
 
   static const String iosBundleId = 'com.codesolution.vacansa';

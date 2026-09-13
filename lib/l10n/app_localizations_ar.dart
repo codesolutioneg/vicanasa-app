@@ -58,6 +58,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginButton => 'دخول';
 
   @override
+  String get signingInTitle => 'جاري تسجيل الدخول…';
+
+  @override
+  String get signingInSubtitle => 'يرجى الانتظار حتى يتم الدخول.';
+
+  @override
   String get forgotPassword => 'نسيت كلمة المرور؟';
 
   @override
