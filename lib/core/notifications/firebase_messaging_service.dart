@@ -5,6 +5,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -17,12 +18,48 @@ import 'navigation_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Logger().i(
     'FCM background message received: id=${message.messageId}, '
     'title=${message.notification?.title}, body=${message.notification?.body}, '
     'from=${message.from}, data=${message.data}',
   );
+  // OS already displays FCM `notification` payloads while backgrounded.
+  if (message.notification != null) return;
+  final title = fcmNotificationTitle(message);
+  final body = fcmNotificationBody(message);
+  if (title == null && body == null) return;
+  await LocalNotificationsService.instance.init();
+  await LocalNotificationsService.instance.show(
+    title,
+    body,
+    jsonEncode(message.data),
+  );
+}
+
+String? fcmNotificationTitle(RemoteMessage message) {
+  final fromNotification = message.notification?.title?.trim();
+  if (fromNotification != null && fromNotification.isNotEmpty) {
+    return fromNotification;
+  }
+  final fromData = (message.data['title'] ?? message.data['notification_title'])
+      ?.toString()
+      .trim();
+  if (fromData != null && fromData.isNotEmpty) return fromData;
+  return null;
+}
+
+String? fcmNotificationBody(RemoteMessage message) {
+  final fromNotification = message.notification?.body?.trim();
+  if (fromNotification != null && fromNotification.isNotEmpty) {
+    return fromNotification;
+  }
+  final fromData = (message.data['body'] ?? message.data['notification_body'])
+      ?.toString()
+      .trim();
+  if (fromData != null && fromData.isNotEmpty) return fromData;
+  return null;
 }
 
 /// FCM topic subscriptions — mobile only; no-op when Firebase/FCM is unavailable.
@@ -217,18 +254,19 @@ class FirebaseMessagingService {
       'title=${message.notification?.title}, body=${message.notification?.body}, '
       'from=${message.from}, data=${message.data}',
     );
-    final n = message.notification;
-    if (n != null) {
-      LocalNotificationsService.instance.show(
-        n.title,
-        n.body,
-        jsonEncode(message.data),
-      );
+    final title = fcmNotificationTitle(message);
+    final body = fcmNotificationBody(message);
+    if (title == null && body == null) {
+      if (message.data.isNotEmpty) {
+        _log.i('FCM data-only message: ${message.data}');
+      }
       return;
     }
-    if (message.data.isNotEmpty) {
-      _log.i('FCM data-only message: ${message.data}');
-    }
+    LocalNotificationsService.instance.show(
+      title,
+      body,
+      jsonEncode(message.data),
+    );
   }
 
   void _onOpened(RemoteMessage message, {required bool killed}) {

@@ -16,6 +16,22 @@
   "loginEmail": "Email",
   "loginPassword": "Password",
   "loginButton": "Sign In",
+  "forgotPassword": "Forgot password?",
+  "forgotPasswordTitle": "Reset password",
+  "forgotPasswordSubtitle": "Enter your email and we will send a new password to your inbox.",
+  "forgotPasswordHint": "Enter your email",
+  "forgotPasswordButton": "Send new password",
+  "sendingEmailTitle": "Sending email…",
+  "sendingEmailSubtitle": "Please wait while we send a new password to your inbox.",
+  "resetPasswordSentTitle": "Check your email",
+  "resetPasswordSentMessage": "A new password was sent to {email}. Use it to sign in.",
+  "@resetPasswordSentMessage": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "resetPasswordSentHint": "It may take a few minutes if the mail server is busy. Check spam too.",
+  "resetPasswordBackToLogin": "Back to sign in",
   "loginError": "Invalid credentials or access denied",
   "accessDeniedTitle": "Access Denied",
   "accessDeniedMessage": "Your account is not enabled as a financial partner.",

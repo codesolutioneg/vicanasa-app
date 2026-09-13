@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../features/auth/presentation/cubit/reset_password_cubit.dart';
 import '../../features/financial/data/datasources/financial_remote_datasource.dart';
 import '../../features/financial/data/repositories/financial_repository_impl.dart';
 import '../../features/financial/domain/repositories/financial_repository.dart';
@@ -44,5 +45,6 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(MobileVersionsService.new);
   sl.registerLazySingleton(ReviewModeCubit.new);
   sl.registerFactory(() => AuthCubit(sl(), sl()));
+  sl.registerFactory(() => ResetPasswordCubit(sl()));
   sl.registerFactory(FilterCubit.new);
 }

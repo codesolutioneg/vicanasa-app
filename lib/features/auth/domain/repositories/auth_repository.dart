@@ -7,6 +7,7 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+  Future<Either<Failure, Unit>> resetPassword({required String email});
   Future<void> logout();
   Future<bool> hasSession();
   Future<String?> getStoredLogin();

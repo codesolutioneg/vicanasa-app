@@ -108,6 +108,7 @@ class OdooClient {
   /// Portal session login (CORS-enabled for Flutter web).
   static const authenticatePath = '/my/financial/api/auth/authenticate';
   static const logoutPath = '/my/financial/api/auth/logout';
+  static const resetPasswordPath = '/my/financial/api/auth/reset-password';
 
   Future<void> authenticate({
     required String db,
@@ -123,6 +124,16 @@ class OdooClient {
     if ((uid == null || uid == false) &&
         (sessionId == null || sessionId == false || '$sessionId'.isEmpty)) {
       throw AuthException('Invalid credentials');
+    }
+  }
+
+  Future<void> resetPassword({required String email}) async {
+    final result = await jsonRpc(
+      resetPasswordPath,
+      params: {'email': email.trim()},
+    );
+    if (result['success'] == false) {
+      throw ServerException('${result['error'] ?? 'Could not reset password'}');
     }
   }
 

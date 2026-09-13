@@ -50,6 +50,20 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> resetPassword({required String email}) async {
+    try {
+      await _client.resetPassword(email: email.trim());
+      return const Right(unit);
+    } on NetworkException {
+      return Left(NetworkFailure(_networkMessage()));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<void> syncPushTopics() async {
     final email = await getStoredLogin();
     if (email != null && email.isNotEmpty) {

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/auth/presentation/pages/access_denied_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/reset_password_sent_page.dart';
+import '../../features/auth/presentation/cubit/reset_password_cubit.dart';
 import '../../features/branches/presentation/pages/branches_page.dart';
 import '../../features/capital/presentation/pages/capital_page.dart';
 import '../../features/comparison/presentation/pages/comparison_page.dart';
@@ -25,6 +29,8 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const login = '/login';
+  static const forgotPassword = '/forgot-password';
+  static const resetPasswordSent = '/reset-password-sent';
   static const accessDenied = '/access-denied';
   static const dashboard = '/dashboard';
   static const pnl = '/pnl';
@@ -51,14 +57,23 @@ GoRouter createAppRouter(AuthCubit authCubit) {
         if (loc != AppRoutes.splash) target = AppRoutes.splash;
       } else if (auth is AuthLoading) {
         // Stay on login/splash while signing in.
-      } else if (auth is AuthUnauthenticated) {
-        if (loc != AppRoutes.login && loc != AppRoutes.onboarding) {
+      } else if (auth is AuthUnauthenticated || auth is AuthError) {
+        const publicLocs = {
+          AppRoutes.login,
+          AppRoutes.onboarding,
+          AppRoutes.forgotPassword,
+          AppRoutes.resetPasswordSent,
+        };
+        if (!publicLocs.contains(loc)) {
           target = AppRoutes.login;
         }
       } else if (auth is AuthAccessDenied) {
         if (loc != AppRoutes.accessDenied) target = AppRoutes.accessDenied;
       } else if (auth is AuthAuthenticated) {
-        if (loc == AppRoutes.login || loc == AppRoutes.onboarding) {
+        if (loc == AppRoutes.login ||
+            loc == AppRoutes.onboarding ||
+            loc == AppRoutes.forgotPassword ||
+            loc == AppRoutes.resetPasswordSent) {
           target = AppRoutes.dashboard;
         }
       }
@@ -77,6 +92,25 @@ GoRouter createAppRouter(AuthCubit authCubit) {
       GoRoute(
         path: AppRoutes.login,
         pageBuilder: (c, s) => iosSlidePage(key: s.pageKey, child: const LoginPage()),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        pageBuilder: (c, s) => iosSlidePage(
+          key: s.pageKey,
+          child: BlocProvider(
+            create: (_) => sl<ResetPasswordCubit>(),
+            child: const ForgotPasswordPage(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPasswordSent,
+        pageBuilder: (c, s) => iosSlidePage(
+          key: s.pageKey,
+          child: ResetPasswordSentPage(
+            email: s.extra is String ? s.extra as String : '',
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.accessDenied,

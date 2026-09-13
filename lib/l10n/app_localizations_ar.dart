@@ -58,6 +58,44 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginButton => 'دخول';
 
   @override
+  String get forgotPassword => 'نسيت كلمة المرور؟';
+
+  @override
+  String get forgotPasswordTitle => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get forgotPasswordSubtitle =>
+      'أدخل بريدك الإلكتروني وسنرسل كلمة مرور جديدة إلى صندوق الوارد.';
+
+  @override
+  String get forgotPasswordHint => 'أدخل بريدك الإلكتروني';
+
+  @override
+  String get forgotPasswordButton => 'إرسال كلمة مرور جديدة';
+
+  @override
+  String get sendingEmailTitle => 'جاري إرسال الإيميل…';
+
+  @override
+  String get sendingEmailSubtitle =>
+      'يرجى الانتظار بينما نرسل كلمة مرور جديدة إلى بريدك.';
+
+  @override
+  String get resetPasswordSentTitle => 'تحقق من بريدك';
+
+  @override
+  String resetPasswordSentMessage(String email) {
+    return 'تم إرسال كلمة مرور جديدة إلى $email. استخدمها لتسجيل الدخول.';
+  }
+
+  @override
+  String get resetPasswordSentHint =>
+      'قد يصل خلال دقائق إذا كان سيرفر البريد مشغولاً. تحقق أيضاً من البريد غير المرغوب فيه.';
+
+  @override
+  String get resetPasswordBackToLogin => 'العودة لتسجيل الدخول';
+
+  @override
   String get loginError => 'بيانات غير صحيحة أو الوصول مرفوض';
 
   @override

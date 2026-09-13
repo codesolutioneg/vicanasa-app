@@ -176,7 +176,16 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton(
+                        onPressed: loading
+                            ? null
+                            : () => context.push(AppRoutes.forgotPassword),
+                        child: Text(l10n.forgotPassword),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     FilledButton(
                       onPressed: loading
                           ? null
@@ -312,7 +321,16 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton(
+                        onPressed: loading
+                            ? null
+                            : () => context.push(AppRoutes.forgotPassword),
+                        child: Text(l10n.forgotPassword),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     FilledButton(
                       onPressed: loading
                           ? null

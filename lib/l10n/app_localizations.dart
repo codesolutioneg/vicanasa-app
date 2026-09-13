@@ -194,6 +194,72 @@ abstract class AppLocalizations {
   /// **'Sign In'**
   String get loginButton;
 
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get forgotPasswordTitle;
+
+  /// No description provided for @forgotPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we will send a new password to your inbox.'**
+  String get forgotPasswordSubtitle;
+
+  /// No description provided for @forgotPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email'**
+  String get forgotPasswordHint;
+
+  /// No description provided for @forgotPasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send new password'**
+  String get forgotPasswordButton;
+
+  /// No description provided for @sendingEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending email…'**
+  String get sendingEmailTitle;
+
+  /// No description provided for @sendingEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait while we send a new password to your inbox.'**
+  String get sendingEmailSubtitle;
+
+  /// No description provided for @resetPasswordSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get resetPasswordSentTitle;
+
+  /// No description provided for @resetPasswordSentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A new password was sent to {email}. Use it to sign in.'**
+  String resetPasswordSentMessage(String email);
+
+  /// No description provided for @resetPasswordSentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It may take a few minutes if the mail server is busy. Check spam too.'**
+  String get resetPasswordSentHint;
+
+  /// No description provided for @resetPasswordBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get resetPasswordBackToLogin;
+
   /// No description provided for @loginError.
   ///
   /// In en, this message translates to:

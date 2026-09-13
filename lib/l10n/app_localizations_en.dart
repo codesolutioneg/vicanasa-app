@@ -60,6 +60,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginButton => 'Sign In';
 
   @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get forgotPasswordTitle => 'Reset password';
+
+  @override
+  String get forgotPasswordSubtitle =>
+      'Enter your email and we will send a new password to your inbox.';
+
+  @override
+  String get forgotPasswordHint => 'Enter your email';
+
+  @override
+  String get forgotPasswordButton => 'Send new password';
+
+  @override
+  String get sendingEmailTitle => 'Sending email…';
+
+  @override
+  String get sendingEmailSubtitle =>
+      'Please wait while we send a new password to your inbox.';
+
+  @override
+  String get resetPasswordSentTitle => 'Check your email';
+
+  @override
+  String resetPasswordSentMessage(String email) {
+    return 'A new password was sent to $email. Use it to sign in.';
+  }
+
+  @override
+  String get resetPasswordSentHint =>
+      'It may take a few minutes if the mail server is busy. Check spam too.';
+
+  @override
+  String get resetPasswordBackToLogin => 'Back to sign in';
+
+  @override
   String get loginError => 'Invalid credentials or access denied';
 
   @override
